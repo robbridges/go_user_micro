@@ -1,0 +1,5 @@
+mode: set
+the_lonely_road/cmd/api/handlers.go:5.68,8.2 1 1
+the_lonely_road/cmd/api/main.go:15.13,23.16 4 0
+the_lonely_road/cmd/api/main.go:23.16,25.3 1 0
+the_lonely_road/cmd/api/routes.go:8.42,15.2 3 1
