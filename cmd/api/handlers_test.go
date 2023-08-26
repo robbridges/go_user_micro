@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -25,10 +26,17 @@ func TestApp_HandleHome(t *testing.T) {
 		t.Errorf("Got %d, want %d", got, want)
 	}
 
-	expected := "Welcome to the user service!"
-
-	if rr.Body.String() != expected {
-		t.Errorf("Got %s, wanted %s", rr.Body.String(), expected)
+	var response jsonPayload
+	err = json.Unmarshal(rr.Body.Bytes(), &response)
+	if err != nil {
+		t.Errorf("Error unmarshaling JSON: %v", err)
 	}
 
+	if response.Name != "User greet" {
+		t.Errorf("Wrong json marshalled")
+	}
+
+	if response.Data != "Hello user" {
+		t.Errorf("Wrong json marshalling")
+	}
 }
