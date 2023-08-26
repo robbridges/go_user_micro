@@ -1,11 +1,14 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"net/http"
+	"the_lonely_road/data"
 )
 
 type App struct {
+	DB *sql.DB
 }
 
 const (
@@ -23,5 +26,15 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 	}
+
+	cfg := data.DefaultPostgresConfig()
+	db, err := data.Open(cfg)
+	if err != nil {
+		panic(err)
+	}
+
+	defer db.Close()
+	app.DB = db
+	fmt.Println("Connected to DB")
 
 }
