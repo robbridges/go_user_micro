@@ -6,3 +6,5 @@ migrate_up:
 	migrate -path=./migrations -database=postgres://postgres:postgres@localhost:5431/usertest\?sslmode=disable up
 migrate_down:
 	migrate -path=./migrations -database=postgres://postgres:postgres@localhost:5431/usertest\?sslmode=disable down
+test:
+	go test -coverprofile=coverage.out ./... && go tool cover -html=coverage.out

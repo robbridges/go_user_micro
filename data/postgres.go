@@ -3,6 +3,7 @@ package data
 import (
 	"database/sql"
 	"fmt"
+	_ "github.com/jackc/pgx/v4/stdlib"
 )
 
 type PostgressConfig struct {
@@ -30,13 +31,15 @@ func Open(config PostgressConfig) (*sql.DB, error) {
 		"pgx",
 		config.String(),
 	)
+
+	if err != nil {
+		return nil, fmt.Errorf("error Opening DB: %w", err)
+	}
 	err = db.Ping()
 	if err != nil {
-		return nil, fmt.Errorf("error Opening DB: %w", err)
+		fmt.Println("Failed to ping the database:", err)
 	}
-	if err != nil {
-		return nil, fmt.Errorf("error Opening DB: %w", err)
-	}
+
 	return db, nil
 }
 
