@@ -1,14 +1,14 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
 	"net/http"
 	"the_lonely_road/data"
+	"the_lonely_road/models"
 )
 
 type App struct {
-	DB *sql.DB
+	userModel models.UserModel
 }
 
 const (
@@ -34,7 +34,7 @@ func main() {
 	}
 
 	defer db.Close()
-	app.DB = db
+	app.userModel.DB = db
 	fmt.Println("Connected to DB")
 
 }
