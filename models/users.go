@@ -11,7 +11,7 @@ import (
 
 type User struct {
 	ID        int64     `json:"id"`
-	Password  Password  `json:"-"`
+	Password  string    `json:"-"`
 	Email     string    `json:"email"`
 	CreatedAt time.Time `json:"created_at"`
 }
@@ -20,47 +20,26 @@ type UserModel struct {
 	DB *sql.DB
 }
 
-type Password struct {
-	plaintext *string
-	hash      []byte
-}
-
-func (p *Password) Set(plaintextPassword string) error {
-	hash, err := bcrypt.GenerateFromPassword([]byte(plaintextPassword), 12)
+func EncryptPassword(plaintext string) (string, error) {
+	hashedBytes, err := bcrypt.GenerateFromPassword([]byte(plaintext), bcrypt.DefaultCost)
 	if err != nil {
-		return err
+		return "", err
+
 	}
-
-	p.plaintext = &plaintextPassword
-	p.hash = hash
-
-	return nil
-}
-
-func (p *Password) Matches(plaintextPassword string) (bool, error) {
-	err := bcrypt.CompareHashAndPassword(p.hash, []byte(plaintextPassword))
-	if err != nil {
-		switch {
-		case errors.Is(err, bcrypt.ErrMismatchedHashAndPassword):
-			return false, nil
-		default:
-			return true, nil
-		}
-	}
-	return true, nil
+	return string(hashedBytes), nil
 }
 
 func (m UserModel) Insert(user *User) error {
 	query := `
 	INSERT INTO users (email, password_hash, created_at)
 	VALUES ($1, $2, $3)
-	RETURNING id, created_at`
+	RETURNING id, password_hash, created_at`
 
-	args := []interface{}{user.Email, user.Password.hash, user.CreatedAt}
+	args := []interface{}{user.Email, user.Password, user.CreatedAt}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	err := m.DB.QueryRowContext(ctx, query, args...).Scan(&user.ID, &user.CreatedAt)
+	err := m.DB.QueryRowContext(ctx, query, args...).Scan(&user.ID, &user.Password, &user.CreatedAt)
 	if err != nil {
 		switch {
 		case strings.Contains(err.Error(), "users_email_key"):
@@ -86,7 +65,7 @@ func (m UserModel) GetByEmail(email string) (*User, error) {
 
 	err := m.DB.QueryRowContext(ctx, query, email).Scan(
 		&user.ID,
-		&user.Password.hash,
+		&user.Password,
 		&user.Email,
 		&user.CreatedAt,
 	)

@@ -16,15 +16,11 @@ const (
 )
 
 func main() {
+
 	app := App{}
 	svr := http.Server{
 		Addr:    fmt.Sprintf(":%s", port),
 		Handler: app.SetRoutes(),
-	}
-
-	err := svr.ListenAndServe()
-	if err != nil {
-		fmt.Println(err)
 	}
 
 	cfg := data.DefaultPostgresConfig()
@@ -35,6 +31,10 @@ func main() {
 
 	defer db.Close()
 	app.userModel.DB = db
-	fmt.Println("Connected to DB")
+
+	err = svr.ListenAndServe()
+	if err != nil {
+		fmt.Println(err)
+	}
 
 }

@@ -9,6 +9,7 @@ func (app *App) SetRoutes() http.Handler {
 	r := chi.NewRouter()
 
 	r.Get("/", app.HandleHome)
+	r.Post("/users", app.CreateUser)
 	// Define more routes here
 
 	return r
