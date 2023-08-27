@@ -44,3 +44,20 @@ func (app *App) CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 	app.writeJSON(w, 200, &user)
 }
+
+func (app *App) getUserByEmail(w http.ResponseWriter, r *http.Request) {
+	var payload struct {
+		Email string
+	}
+	err := app.readJSON(w, r, &payload)
+	if err != nil {
+		w.Write([]byte("Error reading JSON"))
+		return
+	}
+	user, err := app.userModel.GetByEmail(payload.Email)
+	if err != nil {
+		w.Write([]byte("Error getting user " + err.Error()))
+		return
+	}
+	app.writeJSON(w, 200, &user)
+}
