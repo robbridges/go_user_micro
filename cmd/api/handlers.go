@@ -61,3 +61,29 @@ func (app *App) getUserByEmail(w http.ResponseWriter, r *http.Request) {
 	}
 	app.writeJSON(w, 200, &user)
 }
+
+func (app *App) updateUserPassword(w http.ResponseWriter, r *http.Request) {
+
+	var payload struct {
+		Email    string
+		Password string
+	}
+	err := app.readJSON(w, r, &payload)
+	if err != nil {
+		w.Write([]byte("Error reading JSON"))
+		return
+	}
+	passwordHash, err := models.EncryptPassword(payload.Password)
+	user, err := app.userModel.GetByEmail(payload.Email)
+	if err != nil {
+		w.Write([]byte("Error getting user " + err.Error()))
+		return
+	}
+	user.Password = passwordHash
+	err = app.userModel.UpdatePassword(int(user.ID), user.Password)
+	if err != nil {
+		w.Write([]byte("Error updating user " + err.Error()))
+		return
+	}
+	app.writeJSON(w, 200, &user)
+}

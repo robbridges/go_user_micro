@@ -10,6 +10,7 @@ func (app *App) SetRoutes() http.Handler {
 
 	r.Get("/", app.HandleHome)
 	r.Post("/users", app.CreateUser)
+	r.Patch("/users", app.updateUserPassword)
 	r.Get("/users", app.getUserByEmail)
 	// Define more routes here
 

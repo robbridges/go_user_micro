@@ -4,6 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
+	"github.com/jackc/pgconn"
+	"github.com/jackc/pgerrcode"
 	"golang.org/x/crypto/bcrypt"
 	"strings"
 	"time"
@@ -80,4 +83,27 @@ func (m UserModel) GetByEmail(email string) (*User, error) {
 	}
 
 	return &user, nil
+}
+
+func (m UserModel) UpdatePassword(userID int, password string) error {
+	hashedBytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("update password: %w", err)
+	}
+	passwordHash := string(hashedBytes)
+	_, err = m.DB.Exec(`
+	UPDATE users
+	SET password_hash = $2
+	WHERE id = $1;`, userID, passwordHash)
+	if err != nil {
+		var pgError *pgconn.PgError
+		if errors.As(err, &pgError) {
+			if pgError.Code == pgerrcode.NoData {
+				return errors.New("no data")
+			}
+		}
+		return fmt.Errorf("update password: %w", err)
+	}
+
+	return nil
 }
