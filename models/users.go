@@ -36,13 +36,13 @@ func (m UserModel) Insert(user *User) error {
 	query := `
 	INSERT INTO users (email, password_hash, created_at)
 	VALUES ($1, $2, $3)
-	RETURNING id, password_hash, created_at`
+	RETURNING id`
 
 	args := []interface{}{user.Email, user.Password, user.CreatedAt}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	err := m.DB.QueryRowContext(ctx, query, args...).Scan(&user.ID, &user.Password, &user.CreatedAt)
+	err := m.DB.QueryRowContext(ctx, query, args...).Scan(&user.ID)
 	if err != nil {
 		switch {
 		case strings.Contains(err.Error(), "users_email_key"):
