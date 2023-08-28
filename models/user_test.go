@@ -38,13 +38,22 @@ func TestUserModelMock_GetByEmail(t *testing.T) {
 	if err != nil {
 		t.Errorf("Expected no error, got %s", err)
 	}
-	user, err := userModel.GetByEmail(mockUser.Email)
-	if err != nil {
-		t.Errorf("Expected no error, got %s", err)
-	}
-	if !reflect.DeepEqual(user, &mockUser) {
-		t.Errorf("Expected user to be returned")
-	}
+
+	t.Run("User Found", func(t *testing.T) {
+		user, err := userModel.GetByEmail(mockUser.Email)
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
+		}
+		if !reflect.DeepEqual(user, &mockUser) {
+			t.Errorf("Expected user to be returned")
+		}
+	})
+	t.Run("User Not Found", func(t *testing.T) {
+		_, err := userModel.GetByEmail("notfound")
+		if err == nil && err.Error() != "user not found" {
+			t.Errorf("Expected error, got %s", err)
+		}
+	})
 }
 
 func TestUserModelMock_UpdatePassword(t *testing.T) {
@@ -60,15 +69,23 @@ func TestUserModelMock_UpdatePassword(t *testing.T) {
 	if err != nil {
 		t.Errorf("Expected no error, got %s", err)
 	}
-	err = userModel.UpdatePassword(int(mockUser.ID), "newpassword")
-	if err != nil {
-		t.Errorf("Expected no error, got %s", err)
-	}
-	user, err := userModel.GetByEmail(mockUser.Email)
-	if err != nil {
-		t.Errorf("Expected no error, got %s", err)
-	}
-	if user.Password != "newpassword" {
-		t.Errorf("Expected password to be updated")
-	}
+	t.Run("Happy path", func(t *testing.T) {
+		err = userModel.UpdatePassword(int(mockUser.ID), "newpassword")
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
+		}
+		user, err := userModel.GetByEmail(mockUser.Email)
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
+		}
+		if user.Password != "newpassword" {
+			t.Errorf("Expected password to be updated")
+		}
+	})
+	t.Run("User not found", func(t *testing.T) {
+		err = userModel.UpdatePassword(999, "newpassword")
+		if err == nil && err.Error() != "user not found" {
+			t.Errorf("Expected error, got %s", err)
+		}
+	})
 }

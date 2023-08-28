@@ -8,7 +8,7 @@ import (
 )
 
 type App struct {
-	userModel models.UserModel
+	userModel models.IUserModel
 }
 
 const (
@@ -30,7 +30,9 @@ func main() {
 	}
 
 	defer db.Close()
-	app.userModel.DB = db
+	app.userModel = &models.UserModel{
+		DB: db,
+	}
 
 	err = svr.ListenAndServe()
 	if err != nil {

@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-type iUserModel interface {
+type IUserModel interface {
 	Insert(user *User) error
 	GetByEmail(email string) (*User, error)
 	UpdatePassword(userID int, password string) error
