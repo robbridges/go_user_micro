@@ -42,7 +42,7 @@ func EncryptPassword(plaintext string) (string, error) {
 	return string(hashedBytes), nil
 }
 
-func (m UserModel) Insert(user *User) error {
+func (m *UserModel) Insert(user *User) error {
 	query := `
 	INSERT INTO users (email, password_hash, created_at)
 	VALUES ($1, $2, $3)
@@ -65,7 +65,7 @@ func (m UserModel) Insert(user *User) error {
 	return nil
 }
 
-func (m UserModel) GetByEmail(email string) (*User, error) {
+func (m *UserModel) GetByEmail(email string) (*User, error) {
 	query := `
 	SELECT id, password_hash, email, created_at
 	FROM users
@@ -95,7 +95,7 @@ func (m UserModel) GetByEmail(email string) (*User, error) {
 	return &user, nil
 }
 
-func (m UserModel) UpdatePassword(userID int, password string) error {
+func (m *UserModel) UpdatePassword(userID int, password string) error {
 	hashedBytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return fmt.Errorf("update password: %w", err)
@@ -132,8 +132,8 @@ func (mockUM *UserModelMock) GetByEmail(email string) (*User, error) {
 	return nil, errors.New("record not found")
 }
 
-func (mockUm *UserModelMock) UpdatePassword(userID int, password string) error {
-	for _, user := range mockUm.DB {
+func (mockUM *UserModelMock) UpdatePassword(userID int, password string) error {
+	for _, user := range mockUM.DB {
 		if user.ID == int64(userID) {
 			user.Password = password
 			return nil

@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"the_lonely_road/models"
 )
 
 func TestApp_HandleHome(t *testing.T) {
@@ -39,4 +41,117 @@ func TestApp_HandleHome(t *testing.T) {
 	if response.Data != "Hello user" {
 		t.Errorf("Wrong json marshalling")
 	}
+}
+
+func TestApp_CreateUser(t *testing.T) {
+	app := App{userModel: &models.UserModelMock{DB: []*models.User{}}}
+
+	payload := []byte(`{"email": "test@example.com", "password": "securepassword"}`)
+
+	req, err := http.NewRequest("POST", "/users", bytes.NewBuffer(payload))
+	if err != nil {
+		t.Errorf("Unexpected error in get request to /")
+	}
+
+	rr := httptest.NewRecorder()
+
+	app.CreateUser(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("Expected status code %d, got %d", http.StatusOK, rr.Code)
+	}
+	var response models.User
+	err = json.Unmarshal(rr.Body.Bytes(), &response)
+	if err != nil {
+		t.Errorf("Error unmarshaling JSON: %v", err)
+	}
+	// we aren't setting the id in the handler it's scanned by postgress so the id will always be 0
+	if response.ID != 0 {
+		t.Errorf("Expected ID to be 0, got %d", response.ID)
+	}
+	if response.Email != "test@example.com" {
+		t.Errorf("Expected email to be test@example.com, but got %s", response.Email)
+	}
+	// the password should be omitted from the responses
+	if response.Password != "" {
+		t.Errorf("Expected password to be encrypted, but got %s", response.Password)
+	}
+}
+
+func TestApp_getUserByEmail(t *testing.T) {
+	app := App{userModel: &models.UserModelMock{DB: []*models.User{}}}
+
+	payload := []byte(`{"email": "test@example.com", "password": "securepassword"}`)
+
+	req, err := http.NewRequest("POST", "/users", bytes.NewBuffer(payload))
+	if err != nil {
+		t.Errorf("Unexpected error in get request to /")
+	}
+
+	rr := httptest.NewRecorder()
+
+	app.CreateUser(rr, req)
+
+	payload = []byte(`{"email": "test@example.com"}`)
+	req, err = http.NewRequest("GET", "/users", bytes.NewBuffer(payload))
+	if err != nil {
+		t.Errorf("Unexpected error in get request to /users")
+	}
+
+	var responseUser models.User
+	err = json.Unmarshal(rr.Body.Bytes(), &responseUser)
+	if err != nil {
+		t.Errorf("Error unmarshaling JSON: %v", err)
+	}
+	rr = httptest.NewRecorder()
+	app.getUserByEmail(rr, req)
+	var secondResponseUser models.User
+	err = json.Unmarshal(rr.Body.Bytes(), &secondResponseUser)
+
+	if err != nil {
+		t.Errorf("Error unmarshaling JSON: %v", err)
+	}
+
+	if responseUser != secondResponseUser {
+		t.Errorf("Expected the same user to be returned")
+	}
+}
+
+func TestApp_updateUserPassword(t *testing.T) {
+	app := App{userModel: &models.UserModelMock{DB: []*models.User{}}}
+
+	payload := []byte(`{"email": "test@example.com", "password": "securepassword"}`)
+
+	req, err := http.NewRequest("POST", "/users", bytes.NewBuffer(payload))
+	if err != nil {
+		t.Errorf("Unexpected error in get request to /")
+	}
+
+	rr := httptest.NewRecorder()
+
+	app.CreateUser(rr, req)
+
+	var responseUser models.User
+	err = json.Unmarshal(rr.Body.Bytes(), &responseUser)
+	if err != nil {
+		t.Errorf("Error unmarshaling JSON: %v", err)
+	}
+	payload = []byte(`{ "email": "test@example.com", "password": "newpassword"}`)
+	req, err = http.NewRequest("PATCH", "/users", bytes.NewBuffer(payload))
+	if err != nil {
+		t.Errorf("Unexpected error in get request to /users")
+	}
+	rr = httptest.NewRecorder()
+	app.updateUserPassword(rr, req)
+	var secondResponseUser models.User
+	err = json.Unmarshal(rr.Body.Bytes(), &secondResponseUser)
+	if err != nil {
+		t.Errorf("Error unmarshaling JSON: %v", err)
+	}
+	if rr.Code != http.StatusOK {
+		t.Errorf("Expected status code %d, got %d", http.StatusOK, rr.Code)
+	}
+
+	// password not returned in the response, best we can do is check the code is 200 in integration we can actually
+	//check the value in the db
 }
