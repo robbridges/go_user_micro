@@ -12,6 +12,12 @@ import (
 	"time"
 )
 
+type iUserModel interface {
+	Insert(user *User) error
+	GetByEmail(email string) (*User, error)
+	UpdatePassword(userID int, password string) error
+}
+
 type User struct {
 	ID        int64     `json:"id"`
 	Password  string    `json:"-"`
@@ -21,6 +27,10 @@ type User struct {
 
 type UserModel struct {
 	DB *sql.DB
+}
+
+type UserModelMock struct {
+	DB []*User
 }
 
 func EncryptPassword(plaintext string) (string, error) {
@@ -106,4 +116,28 @@ func (m UserModel) UpdatePassword(userID int, password string) error {
 	}
 
 	return nil
+}
+
+func (mockUM *UserModelMock) Insert(user *User) error {
+	mockUM.DB = append(mockUM.DB, user)
+	return nil
+}
+
+func (mockUM *UserModelMock) GetByEmail(email string) (*User, error) {
+	for _, user := range mockUM.DB {
+		if user.Email == email {
+			return user, nil
+		}
+	}
+	return nil, errors.New("record not found")
+}
+
+func (mockUm *UserModelMock) UpdatePassword(userID int, password string) error {
+	for _, user := range mockUm.DB {
+		if user.ID == int64(userID) {
+			user.Password = password
+			return nil
+		}
+	}
+	return errors.New("no data")
 }
