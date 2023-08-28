@@ -9,12 +9,15 @@ import (
 	"the_lonely_road/models"
 )
 
+var payload = []byte(`{"email": "test@example.com", "password": "securepassword"}`)
+var jsonError = "Wrong Json Marshalled"
+
 func TestApp_HandleHome(t *testing.T) {
 	app := App{}
 
 	req, err := http.NewRequest("GET", "/", nil)
 	if err != nil {
-		t.Errorf("Unexpected error in get request to /")
+		t.Errorf("Unexpected error in get request to %s", req.URL)
 	}
 
 	rr := httptest.NewRecorder()
@@ -35,22 +38,21 @@ func TestApp_HandleHome(t *testing.T) {
 	}
 
 	if response.Name != "User greet" {
-		t.Errorf("Wrong json marshalled")
+		t.Error(jsonError)
 	}
 
 	if response.Data != "Hello user" {
-		t.Errorf("Wrong json marshalling")
+		t.Error(jsonError)
 	}
+
 }
 
 func TestApp_CreateUser(t *testing.T) {
 	app := App{userModel: &models.UserModelMock{DB: []*models.User{}}}
 
-	payload := []byte(`{"email": "test@example.com", "password": "securepassword"}`)
-
 	req, err := http.NewRequest("POST", "/users", bytes.NewBuffer(payload))
 	if err != nil {
-		t.Errorf("Unexpected error in get request to /")
+		t.Errorf("Unexpected error in get request to %s", req.URL)
 	}
 
 	rr := httptest.NewRecorder()
@@ -65,7 +67,7 @@ func TestApp_CreateUser(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error unmarshaling JSON: %v", err)
 	}
-	// we aren't setting the id in the handler it's scanned by postgress so the id will always be 0
+	// we aren't setting the id in the handler it's scanned by postgres so the id will always be 0
 	if response.ID != 0 {
 		t.Errorf("Expected ID to be 0, got %d", response.ID)
 	}
@@ -76,12 +78,11 @@ func TestApp_CreateUser(t *testing.T) {
 	if response.Password != "" {
 		t.Errorf("Expected password to be encrypted, but got %s", response.Password)
 	}
+
 }
 
 func TestApp_getUserByEmail(t *testing.T) {
 	app := App{userModel: &models.UserModelMock{DB: []*models.User{}}}
-
-	payload := []byte(`{"email": "test@example.com", "password": "securepassword"}`)
 
 	req, err := http.NewRequest("POST", "/users", bytes.NewBuffer(payload))
 	if err != nil {
@@ -113,7 +114,7 @@ func TestApp_getUserByEmail(t *testing.T) {
 	}
 
 	if responseUser != secondResponseUser {
-		t.Errorf("Expected the same user to be returned")
+		t.Errorf("Expected the same user to be returned but got %v and %v", responseUser, secondResponseUser)
 	}
 }
 
@@ -124,7 +125,7 @@ func TestApp_updateUserPassword(t *testing.T) {
 
 	req, err := http.NewRequest("POST", "/users", bytes.NewBuffer(payload))
 	if err != nil {
-		t.Errorf("Unexpected error in get request to /")
+		t.Errorf("Unexpected error in get request to %s", req.URL)
 	}
 
 	rr := httptest.NewRecorder()
@@ -136,18 +137,21 @@ func TestApp_updateUserPassword(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error unmarshaling JSON: %v", err)
 	}
-	payload = []byte(`{ "email": "test@example.com", "password": "newpassword"}`)
+
 	req, err = http.NewRequest("PATCH", "/users", bytes.NewBuffer(payload))
 	if err != nil {
 		t.Errorf("Unexpected error in get request to /users")
 	}
 	rr = httptest.NewRecorder()
+
 	app.updateUserPassword(rr, req)
+
 	var secondResponseUser models.User
 	err = json.Unmarshal(rr.Body.Bytes(), &secondResponseUser)
 	if err != nil {
 		t.Errorf("Error unmarshaling JSON: %v", err)
 	}
+
 	if rr.Code != http.StatusOK {
 		t.Errorf("Expected status code %d, got %d", http.StatusOK, rr.Code)
 	}
