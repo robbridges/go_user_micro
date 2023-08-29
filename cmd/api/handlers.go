@@ -59,7 +59,7 @@ func (app *App) getUserByEmail(w http.ResponseWriter, r *http.Request) {
 	}
 	user, err := app.userModel.GetByEmail(payload.Email)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("Error getting user " + err.Error()))
 		return
 	}

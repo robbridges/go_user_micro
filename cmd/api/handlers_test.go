@@ -148,7 +148,9 @@ func TestApp_getUserByEmail(t *testing.T) {
 		}
 
 		rr := httptest.NewRecorder()
-
+		if rr.Code != http.StatusOK {
+			t.Errorf("Expected status code %d, got %d", http.StatusOK, rr.Code)
+		}
 		app.CreateUser(rr, req)
 
 		payload = []byte(`{"email": "test@example.com"}`)
@@ -163,6 +165,9 @@ func TestApp_getUserByEmail(t *testing.T) {
 			t.Errorf("Error unmarshaling JSON: %v", err)
 		}
 		rr = httptest.NewRecorder()
+		if rr.Code != http.StatusOK {
+			t.Errorf("Expected status code %d, got %d", http.StatusOK, rr.Code)
+		}
 		app.getUserByEmail(rr, req)
 		var secondResponseUser models.User
 		err = json.Unmarshal(rr.Body.Bytes(), &secondResponseUser)
@@ -201,6 +206,9 @@ func TestApp_getUserByEmail(t *testing.T) {
 		}
 		rr = httptest.NewRecorder()
 		app.getUserByEmail(rr, req)
+		if rr.Code != http.StatusBadRequest {
+			t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, rr.Code)
+		}
 		var secondResponseUser models.User
 		err = json.Unmarshal(rr.Body.Bytes(), &secondResponseUser)
 		if err == nil {
@@ -231,6 +239,9 @@ func TestApp_getUserByEmail(t *testing.T) {
 		}
 		rr = httptest.NewRecorder()
 		app.getUserByEmail(rr, req)
+		if rr.Code != http.StatusBadRequest {
+			t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, rr.Code)
+		}
 		var secondResponseUser models.User
 		err = json.Unmarshal(rr.Body.Bytes(), &secondResponseUser)
 		if err == nil {
