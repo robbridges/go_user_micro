@@ -298,16 +298,78 @@ func TestApp_updateUserPassword(t *testing.T) {
 			t.Errorf("Expected user to be updated but got %v and %v", responseUser, secondResponseUser)
 		}
 
-		// password not returned in the response, best we can do is check the code is 200 in integration we can actually
-		//check the value in the db
+		app.checkMockDBSize(t, 1)
+	})
+	t.Run("Bad json", func(t *testing.T) {
+		app := App{userModel: &models.UserModelMock{DB: []*models.User{}}}
+
+		payload := []byte(`{"email": "test@example.com", "password": "securepassword"}`)
+		req, err := http.NewRequest("POST", "/users", bytes.NewBuffer(payload))
+		if err != nil {
+			t.Errorf("Unexpected error in get request to %s", req.URL)
+		}
+
+		rr := httptest.NewRecorder()
+
+		app.CreateUser(rr, req)
+
+		var responseUser models.User
+		err = json.Unmarshal(rr.Body.Bytes(), &responseUser)
+		if err != nil {
+			t.Errorf("Error unmarshaling JSON: %v", err)
+		}
+
+		rr = httptest.NewRecorder()
+		payload = []byte(`{"email": "test@example.com" "password": "securepassword"}`)
+		req, err = http.NewRequest("PATCH", "/users", bytes.NewBuffer(payload))
+		if err != nil {
+			t.Errorf("Unexpected error in patch request to /users")
+		}
+		app.updateUserPassword(rr, req)
+		if rr.Code != http.StatusBadRequest {
+			t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, rr.Code)
+		}
+	})
+	t.Run("User not found", func(t *testing.T) {
+		app := App{userModel: &models.UserModelMock{DB: []*models.User{}}}
+
+		payload := []byte(`{"email": "test@example.com", "password": "securepassword"}`)
+
+		req, err := http.NewRequest("POST", "/users", bytes.NewBuffer(payload))
+		if err != nil {
+			t.Errorf("Unexpected error in get request to %s", req.URL)
+		}
+
+		rr := httptest.NewRecorder()
+
+		app.CreateUser(rr, req)
+
+		var responseUser models.User
+		err = json.Unmarshal(rr.Body.Bytes(), &responseUser)
+		if err != nil {
+			t.Errorf("Error unmarshaling JSON: %v", err)
+		}
+
+		payload = []byte(`{"email": "test2@example.com", "password": "moresecurepassword"}`)
+		req, err = http.NewRequest("PATCH", "/users", bytes.NewBuffer(payload))
+		if err != nil {
+			t.Errorf("Unexpected error in get request to /users")
+		}
+		rr = httptest.NewRecorder()
+
+		app.updateUserPassword(rr, req)
+
+		t.Log(rr.Body.String())
+		if string(rr.Body.String()) != "record not found\n" {
+			t.Errorf("Expected record not found error, got %s", rr.Body.String())
+		}
+
+		if rr.Code != http.StatusBadRequest {
+			t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, rr.Code)
+		}
 
 		app.checkMockDBSize(t, 1)
 	})
-	//t.Run("Bad json", func(t *testing.T) {
-	//	app := App{userModel: &models.UserModelMock{DB: []*models.User{}}}
-	//
-	//	payload := []byte(`{"email": "test@example.com", "password": "securepassword"}`)
-	//})
 }
 
 func (app *App) checkMockDBSize(t *testing.T, expected int) {
