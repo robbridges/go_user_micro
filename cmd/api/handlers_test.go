@@ -10,6 +10,7 @@ import (
 )
 
 var payload = []byte(`{"email": "test@example.com", "password": "securepassword"}`)
+var badPayload = []byte(`{"email": "test@example.com" "password": "securepassword"}`)
 var jsonError = "Wrong Json Marshalled"
 
 func TestApp_HandleHome(t *testing.T) {
@@ -48,37 +49,92 @@ func TestApp_HandleHome(t *testing.T) {
 }
 
 func TestApp_CreateUser(t *testing.T) {
-	app := App{userModel: &models.UserModelMock{DB: []*models.User{}}}
+	t.Run("Good json happy path", func(t *testing.T) {
+		app := App{userModel: &models.UserModelMock{DB: []*models.User{}}}
 
-	req, err := http.NewRequest("POST", "/users", bytes.NewBuffer(payload))
-	if err != nil {
-		t.Errorf("Unexpected error in get request to %s", req.URL)
-	}
+		req, err := http.NewRequest("POST", "/users", bytes.NewBuffer(payload))
+		if err != nil {
+			t.Errorf("Unexpected error in get request to %s", req.URL)
+		}
 
-	rr := httptest.NewRecorder()
+		rr := httptest.NewRecorder()
 
-	app.CreateUser(rr, req)
+		app.CreateUser(rr, req)
 
-	if rr.Code != http.StatusOK {
-		t.Errorf("Expected status code %d, got %d", http.StatusOK, rr.Code)
-	}
-	var response models.User
-	err = json.Unmarshal(rr.Body.Bytes(), &response)
-	if err != nil {
-		t.Errorf("Error unmarshaling JSON: %v", err)
-	}
-	// we aren't setting the id in the handler it's scanned by postgres so the id will always be 0
-	if response.ID != 0 {
-		t.Errorf("Expected ID to be 0, got %d", response.ID)
-	}
-	if response.Email != "test@example.com" {
-		t.Errorf("Expected email to be test@example.com, but got %s", response.Email)
-	}
-	// the password should be omitted from the responses
-	if response.Password != "" {
-		t.Errorf("Expected password to be encrypted, but got %s", response.Password)
-	}
+		if rr.Code != http.StatusOK {
+			t.Errorf("Expected status code %d, got %d", http.StatusOK, rr.Code)
+		}
+		var response models.User
+		err = json.Unmarshal(rr.Body.Bytes(), &response)
+		if err != nil {
+			t.Errorf("Error unmarshaling JSON: %v", err)
+		}
+		// we aren't setting the id in the handler it's scanned by postgres so the id will always be 0
+		if response.ID != 0 {
+			t.Errorf("Expected ID to be 0, got %d", response.ID)
+		}
+		if response.Email != "test@example.com" {
+			t.Errorf("Expected email to be test@example.com, but got %s", response.Email)
+		}
+		// the password should be omitted from the responses
+		if response.Password != "" {
+			t.Errorf("Expected password to be encrypted, but got %s", response.Password)
+		}
 
+		// cast user model to mock to check array length
+		app.checkMockDBSize(t, 1)
+	})
+	t.Run("Bad json", func(t *testing.T) {
+		app := App{userModel: &models.UserModelMock{DB: []*models.User{}}}
+
+		req, err := http.NewRequest("POST", "/users", bytes.NewBuffer(badPayload))
+		if err != nil {
+			t.Errorf("Unexpected error in get request to %s", req.URL)
+		}
+
+		rr := httptest.NewRecorder()
+
+		app.CreateUser(rr, req)
+
+		if rr.Code != http.StatusBadRequest {
+			t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, rr.Code)
+		}
+		var response models.User
+		err = json.Unmarshal(rr.Body.Bytes(), &response)
+		if err == nil {
+			t.Errorf("Error expected when unmarshaling JSON: %v", err)
+		}
+		app.checkMockDBSize(t, 0)
+	})
+	t.Run("Duplicate user", func(t *testing.T) {
+		app := App{userModel: &models.UserModelMock{DB: []*models.User{}}}
+
+		req, err := http.NewRequest("POST", "/users", bytes.NewBuffer(payload))
+		if err != nil {
+			t.Errorf("Unexpected error in get request to %s", req.URL)
+		}
+
+		rr := httptest.NewRecorder()
+
+		app.CreateUser(rr, req)
+
+		if rr.Code != http.StatusOK {
+			t.Errorf("Expected status code %d, got %d", http.StatusOK, rr.Code)
+		}
+
+		var response models.User
+		err = json.Unmarshal(rr.Body.Bytes(), &response)
+		if err != nil {
+			t.Errorf("Error expected when unmarshaling JSON: %v", err)
+		}
+
+		rr = httptest.NewRecorder()
+		app.CreateUser(rr, req)
+		if rr.Code != http.StatusBadRequest {
+			t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, rr.Code)
+		}
+		app.checkMockDBSize(t, 1)
+	})
 }
 
 func TestApp_getUserByEmail(t *testing.T) {
@@ -116,6 +172,8 @@ func TestApp_getUserByEmail(t *testing.T) {
 	if responseUser != secondResponseUser {
 		t.Errorf("Expected the same user to be returned but got %v and %v", responseUser, secondResponseUser)
 	}
+
+	app.checkMockDBSize(t, 1)
 }
 
 func TestApp_updateUserPassword(t *testing.T) {
@@ -158,4 +216,16 @@ func TestApp_updateUserPassword(t *testing.T) {
 
 	// password not returned in the response, best we can do is check the code is 200 in integration we can actually
 	//check the value in the db
+
+	app.checkMockDBSize(t, 1)
+}
+
+func (app *App) checkMockDBSize(t *testing.T, expected int) {
+	mockModel, ok := app.userModel.(*models.UserModelMock)
+	if !ok {
+		t.Errorf("Expected app.userModel to be of type UserModelMock")
+	}
+	if len(mockModel.DB) != expected {
+		t.Errorf("Not enough users in database, expected %d, got %d", expected, len(mockModel.DB))
+	}
 }
