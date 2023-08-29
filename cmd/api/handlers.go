@@ -28,7 +28,7 @@ func (app *App) CreateUser(w http.ResponseWriter, r *http.Request) {
 
 	err := app.readJSON(w, r, &payload)
 	if err != nil {
-		http.Error(w, "Error reading JSON", http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	passwordHash, err := models.EncryptPassword(payload.Password)
@@ -39,7 +39,7 @@ func (app *App) CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 	err = app.userModel.Insert(&user)
 	if err != nil {
-		http.Error(w, "Error inserting user", http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	app.writeJSON(w, 200, &user)
@@ -51,12 +51,12 @@ func (app *App) getUserByEmail(w http.ResponseWriter, r *http.Request) {
 	}
 	err := app.readJSON(w, r, &payload)
 	if err != nil {
-		http.Error(w, "Error reading JSON", http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	user, err := app.userModel.GetByEmail(payload.Email)
 	if err != nil {
-		http.Error(w, "Error getting user", http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	app.writeJSON(w, 200, &user)
@@ -70,19 +70,19 @@ func (app *App) updateUserPassword(w http.ResponseWriter, r *http.Request) {
 	}
 	err := app.readJSON(w, r, &payload)
 	if err != nil {
-		http.Error(w, "Error reading JSON", http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	passwordHash, err := models.EncryptPassword(payload.Password)
 	user, err := app.userModel.GetByEmail(payload.Email)
 	if err != nil {
-		http.Error(w, "Error reading JSON", http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	user.Password = passwordHash
 	err = app.userModel.UpdatePassword(int(user.ID), user.Password)
 	if err != nil {
-		http.Error(w, "Error getting user", http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	app.writeJSON(w, 200, &user)
