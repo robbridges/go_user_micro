@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 	"the_lonely_road/models"
 )
@@ -77,7 +78,7 @@ func TestApp_CreateUser(t *testing.T) {
 			t.Errorf("Expected email to be test@example.com, but got %s", response.Email)
 		}
 		// the password should be omitted from the responses
-		if response.Password != "" {
+		if response.Password == "securepassword" {
 			t.Errorf("Expected password to be encrypted, but got %s", response.Password)
 		}
 
@@ -255,47 +256,58 @@ func TestApp_getUserByEmail(t *testing.T) {
 }
 
 func TestApp_updateUserPassword(t *testing.T) {
-	app := App{userModel: &models.UserModelMock{DB: []*models.User{}}}
+	t.Run("Happy Path", func(t *testing.T) {
+		app := App{userModel: &models.UserModelMock{DB: []*models.User{}}}
 
-	payload := []byte(`{"email": "test@example.com", "password": "securepassword"}`)
+		payload := []byte(`{"email": "test@example.com", "password": "securepassword"}`)
 
-	req, err := http.NewRequest("POST", "/users", bytes.NewBuffer(payload))
-	if err != nil {
-		t.Errorf("Unexpected error in get request to %s", req.URL)
-	}
+		req, err := http.NewRequest("POST", "/users", bytes.NewBuffer(payload))
+		if err != nil {
+			t.Errorf("Unexpected error in get request to %s", req.URL)
+		}
 
-	rr := httptest.NewRecorder()
+		rr := httptest.NewRecorder()
 
-	app.CreateUser(rr, req)
+		app.CreateUser(rr, req)
 
-	var responseUser models.User
-	err = json.Unmarshal(rr.Body.Bytes(), &responseUser)
-	if err != nil {
-		t.Errorf("Error unmarshaling JSON: %v", err)
-	}
+		var responseUser models.User
+		err = json.Unmarshal(rr.Body.Bytes(), &responseUser)
+		if err != nil {
+			t.Errorf("Error unmarshaling JSON: %v", err)
+		}
 
-	req, err = http.NewRequest("PATCH", "/users", bytes.NewBuffer(payload))
-	if err != nil {
-		t.Errorf("Unexpected error in get request to /users")
-	}
-	rr = httptest.NewRecorder()
+		payload = []byte(`{"email": "test@example.com", "password": "moresecurepassword"}`)
+		req, err = http.NewRequest("PATCH", "/users", bytes.NewBuffer(payload))
+		if err != nil {
+			t.Errorf("Unexpected error in get request to /users")
+		}
+		rr = httptest.NewRecorder()
 
-	app.updateUserPassword(rr, req)
+		app.updateUserPassword(rr, req)
 
-	var secondResponseUser models.User
-	err = json.Unmarshal(rr.Body.Bytes(), &secondResponseUser)
-	if err != nil {
-		t.Errorf("Error unmarshaling JSON: %v", err)
-	}
+		var secondResponseUser models.User
+		err = json.Unmarshal(rr.Body.Bytes(), &secondResponseUser)
+		if err != nil {
+			t.Errorf("Error unmarshaling JSON: %v", err)
+		}
 
-	if rr.Code != http.StatusOK {
-		t.Errorf("Expected status code %d, got %d", http.StatusOK, rr.Code)
-	}
+		if rr.Code != http.StatusOK {
+			t.Errorf("Expected status code %d, got %d", http.StatusOK, rr.Code)
+		}
+		if reflect.DeepEqual(responseUser.Password, secondResponseUser.Password) {
+			t.Errorf("Expected user to be updated but got %v and %v", responseUser, secondResponseUser)
+		}
 
-	// password not returned in the response, best we can do is check the code is 200 in integration we can actually
-	//check the value in the db
+		// password not returned in the response, best we can do is check the code is 200 in integration we can actually
+		//check the value in the db
 
-	app.checkMockDBSize(t, 1)
+		app.checkMockDBSize(t, 1)
+	})
+	//t.Run("Bad json", func(t *testing.T) {
+	//	app := App{userModel: &models.UserModelMock{DB: []*models.User{}}}
+	//
+	//	payload := []byte(`{"email": "test@example.com", "password": "securepassword"}`)
+	//})
 }
 
 func (app *App) checkMockDBSize(t *testing.T, expected int) {

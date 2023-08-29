@@ -20,7 +20,7 @@ type IUserModel interface {
 
 type User struct {
 	ID        int64     `json:"id"`
-	Password  string    `json:"-"`
+	Password  string    `json:"password"`
 	Email     string    `json:"email"`
 	CreatedAt time.Time `json:"created_at"`
 }
