@@ -128,10 +128,11 @@ func TestApp_CreateUser(t *testing.T) {
 			t.Errorf("Error expected when unmarshaling JSON: %v", err)
 		}
 
+		req, err = http.NewRequest("POST", "/users", bytes.NewBuffer(payload))
 		rr = httptest.NewRecorder()
 		app.CreateUser(rr, req)
-		if rr.Code != http.StatusBadRequest {
-			t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, rr.Code)
+		if rr.Code != http.StatusInternalServerError {
+			t.Errorf("Expected status code %d, got %d", http.StatusInternalServerError, rr.Code)
 		}
 		app.checkMockDBSize(t, 1)
 	})

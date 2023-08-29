@@ -119,6 +119,12 @@ func (m *UserModel) UpdatePassword(userID int, password string) error {
 }
 
 func (mockUM *UserModelMock) Insert(user *User) error {
+	targetUser := user
+	for _, userToCheck := range mockUM.DB {
+		if userToCheck.Email == targetUser.Email {
+			return errors.New("duplicate email")
+		}
+	}
 	mockUM.DB = append(mockUM.DB, user)
 	return nil
 }
