@@ -22,6 +22,11 @@ func TestUserModelMock_Insert(t *testing.T) {
 	if !reflect.DeepEqual(userModel.DB[0], &mockUser) {
 		t.Errorf("Expected user to be inserted")
 	}
+	// expect error when inserting duplicate user
+	err = userModel.Insert(&mockUser)
+	if err == nil {
+		t.Errorf("Expected error, got nil")
+	}
 
 }
 
