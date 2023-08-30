@@ -260,7 +260,7 @@ func TestApp_updateUserPassword(t *testing.T) {
 		if rr.Code != http.StatusOK {
 			t.Errorf("Expected status code %d, got %d", http.StatusOK, rr.Code)
 		}
-		if reflect.DeepEqual(userAtBeginning, secondResponseUser.Password) {
+		if reflect.DeepEqual(userAtBeginning, secondResponseUser) {
 			t.Errorf("Expected user to be updated but got %v and %v", userAtBeginning, secondResponseUser)
 		}
 
