@@ -1,6 +1,6 @@
 mode: set
 the_lonely_road/data/postgres.go:18.46,27.2 1 1
-the_lonely_road/data/postgres.go:29.43,38.2 1 0
+the_lonely_road/data/postgres.go:29.43,38.2 1 1
 the_lonely_road/data/postgres.go:40.52,46.16 2 1
 the_lonely_road/data/postgres.go:46.16,48.3 1 0
 the_lonely_road/data/postgres.go:49.2,50.16 2 1

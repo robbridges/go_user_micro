@@ -22,6 +22,25 @@ func TestDefaultPostgresConfig(t *testing.T) {
 
 }
 
+func TestTestPostgresConfig(t *testing.T) {
+	cfg := TestPostgresConfig()
+	if cfg.Host != "localhost" {
+		t.Errorf("Expected host to be localhost, but got %s", cfg.Host)
+	}
+	if cfg.Port != "5433" {
+		t.Errorf("Expected port to be 5432, but got %s", cfg.Port)
+	}
+	if cfg.User != "postgres" {
+		t.Errorf("Expected user to be postgres, but got %s", cfg.User)
+	}
+	if cfg.Password != "postgres" {
+		t.Errorf("Expected password to be empty, but got %s", cfg.Password)
+	}
+	if cfg.Database != "mockusertest" {
+		t.Errorf("Expected database to be postgres, but got %s", cfg.Database)
+	}
+}
+
 func TestPostgressConfig_String(t *testing.T) {
 	cfg := DefaultPostgresConfig()
 	got := cfg.String()
