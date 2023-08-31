@@ -16,6 +16,7 @@ type IUserModel interface {
 	Insert(user *User) error
 	GetByEmail(email string) (*User, error)
 	UpdatePassword(userID int, password string) error
+	DeleteUser(userEmail string) error
 }
 
 type User struct {
@@ -123,6 +124,22 @@ func (m *UserModel) UpdatePassword(userID int, password string) error {
 	return nil
 }
 
+func (m *UserModel) DeleteUser(userEmail string) error {
+	query := `delete from users where email = $1`
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	_, err := m.DB.ExecContext(ctx, query, userEmail)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return errors.New("record not found")
+		default:
+			return err
+		}
+	}
+	return nil
+}
+
 func (mockUM *UserModelMock) Insert(user *User) error {
 	hashedPassword, err := EncryptPassword(user.Password)
 	if err != nil {
@@ -157,6 +174,16 @@ func (mockUM *UserModelMock) UpdatePassword(userID int, password string) error {
 	for _, user := range mockUM.DB {
 		if user.ID == int64(userID) {
 			user.Password = newpassword
+			return nil
+		}
+	}
+	return errors.New("no data")
+}
+
+func (mockUM *UserModelMock) DeleteUser(userEmail string) error {
+	for i, user := range mockUM.DB {
+		if user.Email == userEmail {
+			mockUM.DB = append(mockUM.DB[:i], mockUM.DB[i+1:]...)
 			return nil
 		}
 	}

@@ -51,6 +51,7 @@ func TestApp_HandleHomeIntegration(t *testing.T) {
 func TestApp_CreateUserIntegration(t *testing.T) {
 	testCfg := data.TestPostgresConfig()
 	testDB, err := data.Open(testCfg)
+	defer testDB.Close()
 	if err != nil {
 		t.Errorf("Expected database to open, but got %s", err)
 	}
@@ -71,4 +72,16 @@ func TestApp_CreateUserIntegration(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Expected status %d, but got %d", http.StatusOK, resp.StatusCode)
 	}
+	var user models.User
+	err = json.NewDecoder(resp.Body).Decode(&user)
+	if err != nil {
+		t.Errorf("Error unmarshaling JSON: %v", err)
+	}
+	expectedEmail := "test@example.com"
+
+	if user.Email != expectedEmail {
+		t.Errorf("Expected email %s, but got %s", expectedEmail, user.Email)
+	}
+	app.userModel.DeleteUser(user.Email)
+
 }

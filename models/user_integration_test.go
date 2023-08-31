@@ -14,6 +14,7 @@ type App struct {
 func TestUserModel_Insert(t *testing.T) {
 	cfg := data.TestPostgresConfig()
 	db, err := data.Open(cfg)
+	defer db.Close()
 	if err != nil {
 		t.Errorf("Expected no error, got %s", err)
 	}
@@ -34,5 +35,10 @@ func TestUserModel_Insert(t *testing.T) {
 	}
 	if reflect.DeepEqual(foundUser, &mockUser) {
 		t.Errorf("retrieved user does not match inserted user")
+	}
+
+	err = userModel.DeleteUser(mockUser.Email)
+	if err != nil {
+		t.Errorf("Expected no error, got %s", err)
 	}
 }
