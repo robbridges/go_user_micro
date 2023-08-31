@@ -105,34 +105,38 @@ func (m *UserModel) UpdatePassword(userID int, password string) error {
 		return fmt.Errorf("update password: %w", err)
 	}
 	passwordHash := string(hashedBytes)
-	_, err = m.DB.Exec(`
-	UPDATE users
+	query := `UPDATE users
 	SET password_hash = $2
-	WHERE id = $1;`, userID, passwordHash)
+	WHERE id = $1`
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	// we actually only need to check for error, we're going to see the rows affected and return the no data then
+	result, err := m.DB.ExecContext(ctx, query, userID, passwordHash)
 	if err != nil {
-		switch {
-		case errors.Is(err, sql.ErrNoRows):
-			return errors.New("record not found")
-		default:
-			return err
-		}
+		return err
+	}
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		return errors.New("no data")
 	}
 
 	return nil
+
 }
 
 func (m *UserModel) DeleteUser(userEmail string) error {
 	query := `delete from users where email = $1`
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	_, err := m.DB.ExecContext(ctx, query, userEmail)
+	// same as above, we need to check result
+	result, err := m.DB.ExecContext(ctx, query, userEmail)
 	if err != nil {
-		switch {
-		case errors.Is(err, sql.ErrNoRows):
-			return errors.New("record not found")
-		default:
-			return err
-		}
+		return err
+	}
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		return errors.New("no data")
 	}
 	return nil
 }

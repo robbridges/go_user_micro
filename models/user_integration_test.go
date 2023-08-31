@@ -105,7 +105,6 @@ func TestUserModel_UpdatePassword(t *testing.T) {
 		t.Errorf("Expected no error, got %s", err)
 	}
 	defer db.Close()
-
 	userModel := &UserModel{DB: db}
 	t.Run("Update Password happy path", func(t *testing.T) {
 		userToInsert := User{
@@ -113,15 +112,15 @@ func TestUserModel_UpdatePassword(t *testing.T) {
 			Password: "veryinsecurepassword",
 		}
 
-		err := userModel.Insert(&userToInsert)
-		if err != nil {
+		newError := userModel.Insert(&userToInsert)
+		if newError != nil {
 			t.Errorf("Expected no error, got %s", err)
 		}
 
 		// get user before password update to compare later
-		user, err := userModel.GetByEmail(userToInsert.Email)
+		user, newError := userModel.GetByEmail(userToInsert.Email)
 
-		err = userModel.UpdatePassword(int(userToInsert.ID), "newsecurepassword")
+		newError = userModel.UpdatePassword(int(userToInsert.ID), "newsecurepassword")
 		if err != nil {
 			t.Errorf("Expected no error, got %s", err)
 		}
@@ -134,7 +133,53 @@ func TestUserModel_UpdatePassword(t *testing.T) {
 		if reflect.DeepEqual(user.Password, updatedUser.Password) {
 			t.Errorf("Expected password to be updated")
 		}
-		userModel.DeleteUser(userToInsert.Email)
+		err = userModel.DeleteUser(userToInsert.Email)
 	})
 
+	t.Run("User not found", func(t *testing.T) {
+		err := userModel.UpdatePassword(999, "newpassword")
+		if err == nil {
+			t.Errorf("Expected error, got nil")
+		}
+	})
+}
+
+func TestUserModel_DeleteUser(t *testing.T) {
+	cfg := data.TestPostgresConfig()
+	db, err := data.Open(cfg)
+	if err != nil {
+		t.Errorf("Expected no error, got %s", err)
+	}
+	defer db.Close()
+	userModel := &UserModel{DB: db}
+
+	t.Run("Delete User happy path", func(t *testing.T) {
+		userToDelete := User{
+			Email:    "deleteuser@localhost",
+			Password: "veryinsecurepassword",
+		}
+		userModel.Insert(&userToDelete)
+		err := userModel.DeleteUser(userToDelete.Email)
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
+		}
+	})
+	t.Run("User not found", func(t *testing.T) {
+		userToDelete := User{
+			Email:    "deleteuser@localhost",
+			Password: "veryinsecurepassword",
+		}
+		err = userModel.Insert(&userToDelete)
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
+		}
+		err = userModel.DeleteUser(userToDelete.Email)
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
+		}
+		err = userModel.DeleteUser(userToDelete.Email)
+		if err == nil {
+			t.Errorf("Expected error, got nil")
+		}
+	})
 }
