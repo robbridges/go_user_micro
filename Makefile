@@ -2,6 +2,8 @@ psql:
 	docker compose -f docker-compose.yml exec -it db psql -U postgres -d usertest
 setup:
 	docker compose -f docker-compose.yml up -d
+tearDown:
+	docker compose -f docker-compose.yml down
 migrate_up:
 	migrate -path=./migrations -database=postgres://postgres:postgres@localhost:5431/usertest\?sslmode=disable up
 migrate_down:
