@@ -3,7 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -115,7 +115,7 @@ func TestApp_CreateUserIntegration(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		body, err := ioutil.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			t.Errorf("Unexpected error reading response body: %v", err)
 		}
@@ -182,7 +182,7 @@ func TestApp_GetUserIntegration(t *testing.T) {
 		if resp.StatusCode != http.StatusBadRequest {
 			t.Errorf("Expected status %d, but got %d", http.StatusBadRequest, resp.StatusCode)
 		}
-		body, err := ioutil.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			t.Errorf("Unexpected error reading response body: %v", err)
 		}
