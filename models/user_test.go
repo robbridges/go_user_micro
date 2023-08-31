@@ -83,7 +83,7 @@ func TestUserModelMock_UpdatePassword(t *testing.T) {
 		if err != nil {
 			t.Errorf("Expected no error, got %s", err)
 		}
-		if user.Password != "newpassword" {
+		if user.Password == "newpassword" {
 			t.Errorf("Expected password to be updated")
 		}
 	})

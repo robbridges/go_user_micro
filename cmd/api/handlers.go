@@ -31,10 +31,10 @@ func (app *App) CreateUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	passwordHash, err := models.EncryptPassword(payload.Password)
+
 	user := models.User{
 		Email:     payload.Email,
-		Password:  passwordHash,
+		Password:  payload.Password,
 		CreatedAt: time.Now(),
 	}
 	err = app.userModel.Insert(&user)
@@ -73,13 +73,13 @@ func (app *App) updateUserPassword(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	passwordHash, err := models.EncryptPassword(payload.Password)
+
 	user, err := app.userModel.GetByEmail(payload.Email)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	user.Password = passwordHash
+
 	err = app.userModel.UpdatePassword(int(user.ID), user.Password)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

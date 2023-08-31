@@ -43,6 +43,11 @@ func EncryptPassword(plaintext string) (string, error) {
 }
 
 func (m *UserModel) Insert(user *User) error {
+	hashedPassword, err := EncryptPassword(user.Password)
+	if err != nil {
+		return err
+	}
+	user.Password = hashedPassword
 	query := `
 	INSERT INTO users (email, password_hash, created_at)
 	VALUES ($1, $2, $3)
@@ -52,7 +57,7 @@ func (m *UserModel) Insert(user *User) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	err := m.DB.QueryRowContext(ctx, query, args...).Scan(&user.ID)
+	err = m.DB.QueryRowContext(ctx, query, args...).Scan(&user.ID)
 	if err != nil {
 		switch {
 		case strings.Contains(err.Error(), "users_email_key"):
@@ -119,6 +124,11 @@ func (m *UserModel) UpdatePassword(userID int, password string) error {
 }
 
 func (mockUM *UserModelMock) Insert(user *User) error {
+	hashedPassword, err := EncryptPassword(user.Password)
+	if err != nil {
+		return err
+	}
+	user.Password = hashedPassword
 	targetUser := user
 	for _, userToCheck := range mockUM.DB {
 		if userToCheck.Email == targetUser.Email {
@@ -139,9 +149,14 @@ func (mockUM *UserModelMock) GetByEmail(email string) (*User, error) {
 }
 
 func (mockUM *UserModelMock) UpdatePassword(userID int, password string) error {
+	hashedPassword, err := EncryptPassword(password)
+	if err != nil {
+		return err
+	}
+	newpassword := hashedPassword
 	for _, user := range mockUM.DB {
 		if user.ID == int64(userID) {
-			user.Password = password
+			user.Password = newpassword
 			return nil
 		}
 	}
