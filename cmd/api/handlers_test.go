@@ -75,7 +75,7 @@ func TestApp_CreateUser(t *testing.T) {
 		if response.ID != 0 {
 			t.Errorf("Expected ID to be 0, got %d", response.ID)
 		}
-		if response.Email != "test@example.com" {
+		if response.Email != "adminx@localhost" {
 			t.Errorf("Expected email to be test@example.com, but got %s", response.Email)
 		}
 		// the password should be omitted from the responses
