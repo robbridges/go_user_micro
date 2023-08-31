@@ -39,10 +39,7 @@ func TestUserModelMock_GetByEmail(t *testing.T) {
 	}
 
 	userModel := UserModelMock{}
-	err := userModel.Insert(&mockUser)
-	if err != nil {
-		t.Errorf("Expected no error, got %s", err)
-	}
+	userModel.DB = append(userModel.DB, &mockUser)
 
 	t.Run("User Found", func(t *testing.T) {
 		user, err := userModel.GetByEmail(mockUser.Email)
@@ -70,12 +67,9 @@ func TestUserModelMock_UpdatePassword(t *testing.T) {
 	}
 
 	userModel := UserModelMock{}
-	err := userModel.Insert(&mockUser)
-	if err != nil {
-		t.Errorf("Expected no error, got %s", err)
-	}
+	userModel.DB = append(userModel.DB, &mockUser)
 	t.Run("Happy path", func(t *testing.T) {
-		err = userModel.UpdatePassword(int(mockUser.ID), "newpassword")
+		err := userModel.UpdatePassword(int(mockUser.ID), "newpassword")
 		if err != nil {
 			t.Errorf("Expected no error, got %s", err)
 		}
@@ -88,7 +82,39 @@ func TestUserModelMock_UpdatePassword(t *testing.T) {
 		}
 	})
 	t.Run("User not found", func(t *testing.T) {
-		err = userModel.UpdatePassword(999, "newpassword")
+		err := userModel.UpdatePassword(999, "newpassword")
+		if err == nil && err.Error() != "user not found" {
+			t.Errorf("Expected error, got %s", err)
+		}
+	})
+}
+
+func TestUserModelMock_DeleteUser(t *testing.T) {
+	mockUser := User{
+		ID:        3,
+		Email:     "mock@userx.com",
+		Password:  "mockpassword",
+		CreatedAt: time.Now(),
+	}
+	mockUser2 := User{
+		ID:        4,
+		Email:     "mock@userx3.com",
+		Password:  "mockpassword",
+		CreatedAt: time.Now(),
+	}
+	mockModel := UserModelMock{}
+	mockModel.DB = append(mockModel.DB, &mockUser, &mockUser2)
+	t.Run("Happy path", func(t *testing.T) {
+		err := mockModel.DeleteUser(mockUser2.Email)
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
+		}
+		if len(mockModel.DB) != 1 {
+			t.Errorf("Expected mockModel.DB to have length 1, got %d", len(mockModel.DB))
+		}
+	})
+	t.Run("User not found", func(t *testing.T) {
+		err := mockModel.DeleteUser("notfound")
 		if err == nil && err.Error() != "user not found" {
 			t.Errorf("Expected error, got %s", err)
 		}
