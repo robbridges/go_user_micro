@@ -1,12 +1,4 @@
 mode: set
-the_lonely_road/data/postgres.go:18.46,27.2 1 1
-the_lonely_road/data/postgres.go:29.43,38.2 1 1
-the_lonely_road/data/postgres.go:40.52,46.16 2 1
-the_lonely_road/data/postgres.go:46.16,48.3 1 0
-the_lonely_road/data/postgres.go:49.2,50.16 2 1
-the_lonely_road/data/postgres.go:50.16,52.3 1 0
-the_lonely_road/data/postgres.go:54.2,54.16 1 1
-the_lonely_road/data/postgres.go:57.44,60.2 1 1
 the_lonely_road/cmd/api/handlers.go:14.68,21.2 2 1
 the_lonely_road/cmd/api/handlers.go:23.68,30.16 3 1
 the_lonely_road/cmd/api/handlers.go:30.16,33.3 2 1
@@ -53,6 +45,14 @@ the_lonely_road/cmd/api/main.go:28.16,29.13 1 0
 the_lonely_road/cmd/api/main.go:32.2,38.16 4 0
 the_lonely_road/cmd/api/main.go:38.16,40.3 1 0
 the_lonely_road/cmd/api/routes.go:8.42,18.2 6 1
+the_lonely_road/data/postgres.go:18.46,27.2 1 1
+the_lonely_road/data/postgres.go:29.43,38.2 1 1
+the_lonely_road/data/postgres.go:40.52,46.16 2 1
+the_lonely_road/data/postgres.go:46.16,48.3 1 0
+the_lonely_road/data/postgres.go:49.2,50.16 2 1
+the_lonely_road/data/postgres.go:50.16,52.3 1 0
+the_lonely_road/data/postgres.go:54.2,54.16 1 1
+the_lonely_road/data/postgres.go:57.44,60.2 1 1
 the_lonely_road/models/users.go:35.56,37.16 2 1
 the_lonely_road/models/users.go:37.16,40.3 1 0
 the_lonely_road/models/users.go:41.2,41.33 1 1
