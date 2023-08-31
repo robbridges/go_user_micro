@@ -96,3 +96,45 @@ func TestUserModel_GetByEmail(t *testing.T) {
 		}
 	})
 }
+
+func TestUserModel_UpdatePassword(t *testing.T) {
+
+	cfg := data.TestPostgresConfig()
+	db, err := data.Open(cfg)
+	if err != nil {
+		t.Errorf("Expected no error, got %s", err)
+	}
+	defer db.Close()
+
+	userModel := &UserModel{DB: db}
+	t.Run("Update Password happy path", func(t *testing.T) {
+		userToInsert := User{
+			Email:    "updatedpassword@localhost",
+			Password: "veryinsecurepassword",
+		}
+
+		err := userModel.Insert(&userToInsert)
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
+		}
+
+		// get user before password update to compare later
+		user, err := userModel.GetByEmail(userToInsert.Email)
+
+		err = userModel.UpdatePassword(int(userToInsert.ID), "newsecurepassword")
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
+		}
+
+		updatedUser, err := userModel.GetByEmail(userToInsert.Email)
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
+		}
+
+		if reflect.DeepEqual(user.Password, updatedUser.Password) {
+			t.Errorf("Expected password to be updated")
+		}
+		userModel.DeleteUser(userToInsert.Email)
+	})
+
+}
