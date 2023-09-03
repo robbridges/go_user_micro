@@ -54,8 +54,8 @@ func TestApp_HandleHome(t *testing.T) {
 func TestApp_CreateUser(t *testing.T) {
 	t.Run("Good json happy path", func(t *testing.T) {
 		app := App{userModel: &models.UserModelMock{DB: []*models.User{}}}
-		emailPayload := []byte(`{"email": "test@example.com", "password": "securepassword"}`)
-		req, err := http.NewRequest("POST", "/users", bytes.NewBuffer(emailPayload))
+
+		req, err := http.NewRequest("POST", "/users", bytes.NewBuffer(payload))
 		if err != nil {
 			t.Errorf("Unexpected error in get request to %s", req.URL)
 		}

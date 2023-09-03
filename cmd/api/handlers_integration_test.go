@@ -138,8 +138,8 @@ func TestApp_GetUserIntegration(t *testing.T) {
 	t.Run("Get user Happy path", func(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(app.getUserByEmail))
 		defer server.Close()
-		payload = []byte(`{"email": "admin@localhost"}`)
-		req, err := http.NewRequest("GET", server.URL+"/users)", bytes.NewBuffer(payload))
+		payloadEmailOnly := []byte(`{"email": "admin@localhost"}`)
+		req, err := http.NewRequest("GET", server.URL+"/users)", bytes.NewBuffer(payloadEmailOnly))
 		if err != nil {
 			t.Errorf("Unexpected error in get request to %s", req.URL)
 		}
@@ -169,7 +169,7 @@ func TestApp_GetUserIntegration(t *testing.T) {
 	t.Run("Get user Sad path", func(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(app.getUserByEmail))
 		defer server.Close()
-		payload = []byte(`{"email": "adminx@localhost"}`)
+		payload := []byte(`{"email": "adminx@localhost"}`)
 		req, err := http.NewRequest("GET", server.URL+"/users)", bytes.NewBuffer(payload))
 		if err != nil {
 			t.Errorf("Unexpected error in get request to %s", req.URL)
@@ -245,7 +245,7 @@ func Test_UpdatePasswordIntegration(t *testing.T) {
 	t.Run("Update password Sad path", func(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(app.updateUserPassword))
 		defer server.Close()
-		var emailPayload = []byte(`{"email": "adminx@localhost", "password": "secureadminpassword"}`)
+		emailPayload := []byte(`{"email": "adminx@localhost", "password": "secureadminpassword"}`)
 		req, err := http.NewRequest("PATCH", server.URL+"/users)", bytes.NewBuffer(emailPayload))
 		if err != nil {
 			t.Errorf("Unexpected error in get request to %s", req.URL)
