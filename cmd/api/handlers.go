@@ -37,11 +37,13 @@ func (app *App) CreateUser(w http.ResponseWriter, r *http.Request) {
 		Password:  payload.Password,
 		CreatedAt: time.Now(),
 	}
+
 	err = app.userModel.Insert(&user)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	app.writeJSON(w, 200, &user)
 }
 

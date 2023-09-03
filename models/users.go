@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"golang.org/x/crypto/bcrypt"
 	"strings"
+	"the_lonely_road/validator"
 	"time"
 )
 
@@ -189,4 +190,26 @@ func (mockUM *UserModelMock) DeleteUser(userEmail string) error {
 		}
 	}
 	return errors.New("no data")
+}
+
+func ValidateEmail(v *validator.Validator, email string) {
+	v.Check(email != "", email, "must be provided")
+}
+
+func ValidatePasswordPlaintext(v *validator.Validator, password string) {
+	v.Check(password != "", "Password", "must be provided")
+	v.Check(len(password) >= 8, "Password", "must at least be 8 characters long")
+	v.Check(len(password) <= 72, "Password", "must not be more than 72 bytes long")
+}
+
+func ValidateUser(v *validator.Validator, user *User) {
+	v.Check(user.Email != "", "name", "must be provided")
+	v.Check(len(user.Email) <= 500, "name", "must be less than 500 bytes long")
+
+	ValidateEmail(v, user.Email)
+
+	if user.Password == "" {
+		ValidatePasswordPlaintext(v, user.Password)
+	}
+
 }

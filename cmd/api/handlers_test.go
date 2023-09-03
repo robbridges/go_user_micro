@@ -14,6 +14,7 @@ import (
 var payload = []byte(`{"email": "test@example.com", "password": "securepassword"}`)
 var badPayload = []byte(`{"email": "test@example.com" "password": "securepassword"}`)
 var jsonError = "Wrong Json Marshalled"
+var badPasswordPayload = []byte(`{"email": "test@example.com", "password": "a"}`)
 
 func TestApp_HandleHome(t *testing.T) {
 	app := App{}
@@ -138,6 +139,7 @@ func TestApp_CreateUser(t *testing.T) {
 		}
 		app.checkMockDBSize(t, 1)
 	})
+
 }
 
 func TestApp_getUserByEmail(t *testing.T) {
