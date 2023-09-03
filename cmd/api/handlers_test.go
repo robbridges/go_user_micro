@@ -8,13 +8,14 @@ import (
 	"reflect"
 	"testing"
 	"the_lonely_road/models"
+	"the_lonely_road/validator"
 	"time"
 )
 
 var payload = []byte(`{"email": "test@example.com", "password": "securepassword"}`)
 var badPayload = []byte(`{"email": "test@example.com" "password": "securepassword"}`)
 var jsonError = "Wrong Json Marshalled"
-var badPasswordPayload = []byte(`{"email": "test@example.com", "password": "a"}`)
+var badEmailPayload = []byte(`{"email": "a", "password": "securepassword"}`)
 
 func TestApp_HandleHome(t *testing.T) {
 	app := App{}
@@ -59,11 +60,13 @@ func TestApp_CreateUser(t *testing.T) {
 		if err != nil {
 			t.Errorf("Unexpected error in get request to %s", req.URL)
 		}
-
+		v := validator.New()
 		rr := httptest.NewRecorder()
 
 		app.CreateUser(rr, req)
-
+		if !v.Valid() {
+			t.Errorf("Expected validator to be valid, got %v", v.Errors)
+		}
 		if rr.Code != http.StatusOK {
 			t.Errorf("Expected status code %d, got %d", http.StatusOK, rr.Code)
 		}
@@ -139,6 +142,26 @@ func TestApp_CreateUser(t *testing.T) {
 			t.Errorf("Expected status code %d, got %d", http.StatusInternalServerError, rr.Code)
 		}
 		app.checkMockDBSize(t, 1)
+	})
+	t.Run("Bad email", func(t *testing.T) {
+		app := App{userModel: &models.UserModelMock{DB: []*models.User{}}}
+
+		req, err := http.NewRequest("POST", "/users", bytes.NewBuffer(badEmailPayload))
+		if err != nil {
+			t.Errorf("Unexpected error in get request to %s", req.URL)
+		}
+
+		rr := httptest.NewRecorder()
+
+		app.CreateUser(rr, req)
+
+		if rr.Code != http.StatusBadRequest {
+			t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, rr.Code)
+		}
+		if string(rr.Body.String()) != "bad user\n" {
+			t.Errorf("Expected bad user error, got %s", rr.Body.String())
+		}
+		app.checkMockDBSize(t, 0)
 	})
 
 }

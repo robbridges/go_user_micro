@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 	"the_lonely_road/models"
+	"the_lonely_road/validator"
 	"time"
 )
 
@@ -31,11 +32,17 @@ func (app *App) CreateUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	v := validator.New()
 
 	user := models.User{
 		Email:     payload.Email,
 		Password:  payload.Password,
 		CreatedAt: time.Now(),
+	}
+
+	if models.ValidateUser(v, &user); !v.Valid() {
+		http.Error(w, "bad user", http.StatusBadRequest)
+		return
 	}
 
 	err = app.userModel.Insert(&user)
