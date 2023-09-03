@@ -54,8 +54,8 @@ func TestApp_HandleHome(t *testing.T) {
 func TestApp_CreateUser(t *testing.T) {
 	t.Run("Good json happy path", func(t *testing.T) {
 		app := App{userModel: &models.UserModelMock{DB: []*models.User{}}}
-
-		req, err := http.NewRequest("POST", "/users", bytes.NewBuffer(payload))
+		emailPayload := []byte(`{"email": "test@example.com", "password": "securepassword"}`)
+		req, err := http.NewRequest("POST", "/users", bytes.NewBuffer(emailPayload))
 		if err != nil {
 			t.Errorf("Unexpected error in get request to %s", req.URL)
 		}
@@ -76,8 +76,9 @@ func TestApp_CreateUser(t *testing.T) {
 		if response.ID != 0 {
 			t.Errorf("Expected ID to be 0, got %d", response.ID)
 		}
-		if response.Email != "adminx@localhost" {
-			t.Errorf("Expected email to be test@example.com, but got %s", response.Email)
+
+		if response.Email != "test@example.com" {
+			t.Errorf("Expected email to be test@example.com, got %s", response.Email)
 		}
 		// the password should be omitted from the responses
 		if response.Password == "securepassword" {
