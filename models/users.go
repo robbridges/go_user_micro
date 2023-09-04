@@ -194,11 +194,12 @@ func (mockUM *UserModelMock) DeleteUser(userEmail string) error {
 
 func ValidateEmail(v *validator.Validator, email string) {
 	v.Check(email != "", email, "must be provided")
+	v.Check(len(email) >= 3, "Email", "must be at least 3 bytes long")
 }
 
 func ValidatePasswordPlaintext(v *validator.Validator, password string) {
 	v.Check(password != "", "Password", "must be provided")
-	v.Check(len(password) >= 8, "Password", "must at least be 8 characters long")
+	v.Check(len(password) >= 4, "Password", "must at least be 8 characters long")
 	v.Check(len(password) <= 72, "Password", "must not be more than 72 bytes long")
 }
 

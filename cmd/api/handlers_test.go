@@ -16,6 +16,8 @@ var payload = []byte(`{"email": "test@example.com", "password": "securepassword"
 var badPayload = []byte(`{"email": "test@example.com" "password": "securepassword"}`)
 var jsonError = "Wrong Json Marshalled"
 var badEmailPayload = []byte(`{"email": "a", "password": "securepassword"}`)
+var emailOnlyBadPayload = []byte(`{"email": "a"}`)
+var badPasswordGoodEmailPayload = []byte(`{"email": "test@example.com", "password": "a"}`)
 
 func TestApp_HandleHome(t *testing.T) {
 	app := App{}
@@ -249,6 +251,25 @@ func TestApp_getUserByEmail(t *testing.T) {
 			t.Errorf("Expected record not found error, got %s", rr.Body.String())
 		}
 	})
+	t.Run("Bad email req", func(t *testing.T) {
+		app := App{userModel: &models.UserModelMock{DB: []*models.User{}}}
+
+		req, err := http.NewRequest("GET", "/users", bytes.NewBuffer(emailOnlyBadPayload))
+		if err != nil {
+			t.Errorf("Unexpected error in get request to %s", req.URL)
+		}
+
+		rr := httptest.NewRecorder()
+
+		app.getUserByEmail(rr, req)
+
+		if rr.Code != http.StatusBadRequest {
+			t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, rr.Code)
+		}
+		if string(rr.Body.String()) != "invalid user\n" {
+			t.Errorf("Expected bad user error, got %s", rr.Body.String())
+		}
+	})
 }
 
 func TestApp_updateUserPassword(t *testing.T) {
@@ -327,6 +348,26 @@ func TestApp_updateUserPassword(t *testing.T) {
 
 		app.checkMockDBSize(t, 1)
 	})
+	t.Run("Bad password req", func(t *testing.T) {
+		app := App{userModel: &models.UserModelMock{DB: []*models.User{}}}
+
+		req, err := http.NewRequest("PATCH", "/users", bytes.NewBuffer(badPasswordGoodEmailPayload))
+		if err != nil {
+			t.Errorf("Unexpected error in get request to %s", req.URL)
+		}
+
+		rr := httptest.NewRecorder()
+
+		app.updateUserPassword(rr, req)
+
+		if rr.Code != http.StatusBadRequest {
+			t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, rr.Code)
+		}
+		if string(rr.Body.String()) != "user password must be greater than 4 characters and less than 72\n" {
+			t.Errorf("Expected bad user error, got %s", rr.Body.String())
+		}
+	})
+
 }
 
 func (app *App) checkMockDBSize(t *testing.T, expected int) {

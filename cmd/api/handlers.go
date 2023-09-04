@@ -59,11 +59,18 @@ func (app *App) getUserByEmail(w http.ResponseWriter, r *http.Request) {
 	var payload struct {
 		Email string
 	}
+	v := validator.New()
 	err := app.readJSON(w, r, &payload)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	if models.ValidateEmail(v, payload.Email); !v.Valid() {
+		v.AddError("message", "invalid user")
+		http.Error(w, v.Errors["message"], http.StatusBadRequest)
+		return
+	}
+
 	user, err := app.userModel.GetByEmail(payload.Email)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -78,12 +85,18 @@ func (app *App) updateUserPassword(w http.ResponseWriter, r *http.Request) {
 		Email    string
 		Password string
 	}
+	v := validator.New()
+
 	err := app.readJSON(w, r, &payload)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-
+	if models.ValidatePasswordPlaintext(v, payload.Password); !v.Valid() {
+		v.AddError("message", "user password must be greater than 4 characters and less than 72")
+		http.Error(w, v.Errors["message"], http.StatusBadRequest)
+		return
+	}
 	user, err := app.userModel.GetByEmail(payload.Email)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
