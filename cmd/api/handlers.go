@@ -41,7 +41,8 @@ func (app *App) CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if models.ValidateUser(v, &user); !v.Valid() {
-		http.Error(w, "user failed validation", http.StatusBadRequest)
+		v.AddError("message", "invalid user")
+		http.Error(w, v.Errors["message"], http.StatusBadRequest)
 		return
 	}
 

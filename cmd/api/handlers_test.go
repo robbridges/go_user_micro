@@ -158,7 +158,7 @@ func TestApp_CreateUser(t *testing.T) {
 		if rr.Code != http.StatusBadRequest {
 			t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, rr.Code)
 		}
-		if string(rr.Body.String()) != "user failed validation\n" {
+		if string(rr.Body.String()) != "invalid user\n" {
 			t.Errorf("Expected bad user error, got %s", rr.Body.String())
 		}
 		app.checkMockDBSize(t, 0)
