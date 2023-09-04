@@ -3,6 +3,7 @@ package models
 import (
 	"reflect"
 	"testing"
+	"the_lonely_road/validator"
 	"time"
 )
 
@@ -117,6 +118,76 @@ func TestUserModelMock_DeleteUser(t *testing.T) {
 		err := mockModel.DeleteUser("notfound")
 		if err == nil && err.Error() != "user not found" {
 			t.Errorf("Expected error, got %s", err)
+		}
+	})
+}
+
+func TestValidateEmail(t *testing.T) {
+	t.Run("Happy path", func(t *testing.T) {
+		v := validator.New()
+		ValidateEmail(v, "AverygoodEmail@great.com")
+		if !v.Valid() {
+			t.Errorf("Expected validator to be valid, got invalid")
+		}
+	})
+	t.Run("Email too short", func(t *testing.T) {
+		v := validator.New()
+		ValidateEmail(v, "x@c")
+		if v.Valid() {
+			t.Errorf("Expected validator to be invalid, got valid")
+		}
+	})
+}
+
+func TestValidatePasswordPlaintext(t *testing.T) {
+	t.Run("Happy path", func(t *testing.T) {
+		v := validator.New()
+		ValidatePasswordPlaintext(v, "averygoodpassword")
+		if !v.Valid() {
+			t.Errorf("Expected validator to be valid, got invalid")
+		}
+	})
+	t.Run("Password too short", func(t *testing.T) {
+		v := validator.New()
+		ValidatePasswordPlaintext(v, "abc")
+		if v.Valid() {
+			t.Errorf("Expected validator to be invalid, got valid")
+		}
+	})
+}
+
+func TestValidateUser(t *testing.T) {
+	t.Run("Happy path", func(t *testing.T) {
+		v := validator.New()
+		user := User{
+			Email:    "AverygoodEmail",
+			Password: "averygoodpassword",
+		}
+		ValidateUser(v, &user)
+		if !v.Valid() {
+			t.Errorf("Expected validator to be valid, got invalid")
+		}
+	})
+	t.Run("Email too short", func(t *testing.T) {
+		v := validator.New()
+		user := User{
+			Email:    "bad",
+			Password: "averygoodpassword",
+		}
+		ValidateUser(v, &user)
+		if v.Valid() {
+			t.Errorf("Expected validator to not be valid")
+		}
+	})
+	t.Run("Password too short", func(t *testing.T) {
+		v := validator.New()
+		user := User{
+			Email:    "averygoodemail",
+			Password: "",
+		}
+		ValidateUser(v, &user)
+		if v.Valid() {
+			t.Errorf("Expected validator to not be valid")
 		}
 	})
 }
