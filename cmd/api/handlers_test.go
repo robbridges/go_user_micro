@@ -12,6 +12,7 @@ import (
 	"time"
 )
 
+// standard payloads for testing
 var payload = []byte(`{"email": "test@example.com", "password": "securepassword"}`)
 var badPayload = []byte(`{"email": "test@example.com" "password": "securepassword"}`)
 var jsonError = "Wrong Json Marshalled"
@@ -115,6 +116,7 @@ func TestApp_CreateUser(t *testing.T) {
 		if err == nil {
 			t.Errorf("Error expected when unmarshaling JSON: %v", err)
 		}
+		// no user should be entered as the function errors and returns
 		app.checkMockDBSize(t, 0)
 	})
 	t.Run("Duplicate user", func(t *testing.T) {
@@ -162,9 +164,12 @@ func TestApp_CreateUser(t *testing.T) {
 		if rr.Code != http.StatusBadRequest {
 			t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, rr.Code)
 		}
+
+		// validate that the validator did not like the user
 		if string(rr.Body.String()) != "User password must be 4 characters long and email must be 5 characters long\n" {
 			t.Errorf("Expected bad user error, got %s", rr.Body.String())
 		}
+		// no user should be implemented
 		app.checkMockDBSize(t, 0)
 	})
 

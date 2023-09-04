@@ -13,6 +13,7 @@ type jsonPayload struct {
 	Data string `json:"data"`
 }
 
+// more or less make sure the server can receieve requests when running
 func (app *App) HandleHome(w http.ResponseWriter, r *http.Request) {
 	mockPayload := jsonPayload{
 		Name: "User greet",
@@ -22,6 +23,7 @@ func (app *App) HandleHome(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// create a user
 func (app *App) CreateUser(w http.ResponseWriter, r *http.Request) {
 	var payload struct {
 		Email    string
@@ -65,6 +67,7 @@ func (app *App) CreateUser(w http.ResponseWriter, r *http.Request) {
 	app.writeJSON(w, http.StatusOK, &user)
 }
 
+// get user by email
 func (app *App) getUserByEmail(w http.ResponseWriter, r *http.Request) {
 	var payload struct {
 		Email string
@@ -89,6 +92,7 @@ func (app *App) getUserByEmail(w http.ResponseWriter, r *http.Request) {
 	app.writeJSON(w, 200, &user)
 }
 
+// update user password
 func (app *App) updateUserPassword(w http.ResponseWriter, r *http.Request) {
 
 	var payload struct {

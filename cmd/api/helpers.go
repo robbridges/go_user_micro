@@ -9,6 +9,7 @@ import (
 	"strings"
 )
 
+// simple write json function
 func (app *App) writeJSON(w http.ResponseWriter, status int, data interface{}, headers ...http.Header) error {
 	out, err := json.Marshal(data)
 	if err != nil {
@@ -33,6 +34,7 @@ func (app *App) writeJSON(w http.ResponseWriter, status int, data interface{}, h
 	return nil
 }
 
+// read json, this is very hard to test, need to work on.
 func (app *App) readJSON(w http.ResponseWriter, r *http.Request, dst any) error {
 	maxBytes := 1_048_576
 	r.Body = http.MaxBytesReader(w, r.Body, int64(maxBytes))

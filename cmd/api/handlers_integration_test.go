@@ -51,6 +51,7 @@ func TestApp_HandleHomeIntegration(t *testing.T) {
 }
 
 func TestApp_CreateUserIntegration(t *testing.T) {
+	// get and apply db to app's user Model
 	testCfg := data.TestPostgresConfig()
 	testDB, err := data.Open(testCfg)
 	defer testDB.Close()
@@ -58,6 +59,7 @@ func TestApp_CreateUserIntegration(t *testing.T) {
 		t.Errorf("Expected database to open, but got %s", err)
 	}
 	app := App{userModel: &models.UserModel{DB: testDB}}
+
 	t.Run("Create user", func(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(app.CreateUser))
 		defer server.Close()
@@ -74,6 +76,7 @@ func TestApp_CreateUserIntegration(t *testing.T) {
 		if resp.StatusCode != http.StatusOK {
 			t.Errorf("Expected status %d, but got %d", http.StatusOK, resp.StatusCode)
 		}
+		// parse user from response body
 		var user models.User
 		err = json.NewDecoder(resp.Body).Decode(&user)
 		if err != nil {
@@ -84,9 +87,12 @@ func TestApp_CreateUserIntegration(t *testing.T) {
 		if user.Email != expectedEmail {
 			t.Errorf("Expected email %s, but got %s", expectedEmail, user.Email)
 		}
+		// Check that set-cookie is in the response. Since this will only be used a mock user
+		//service we're okay just using stateless authentication
 		if resp.Header.Get("Set-Cookie") == "" {
 			t.Error("Expected cookie to be set, but got none")
 		}
+		// delete user to keep test db clean
 		app.userModel.DeleteUser(user.Email)
 	})
 	t.Run("Duplicate user", func(t *testing.T) {
@@ -105,6 +111,8 @@ func TestApp_CreateUserIntegration(t *testing.T) {
 		if resp.StatusCode != http.StatusOK {
 			t.Errorf("Expected status %d, but got %d", http.StatusOK, resp.StatusCode)
 		}
+
+		//parse user
 		var user models.User
 		err = json.NewDecoder(resp.Body).Decode(&user)
 		if err != nil {
@@ -114,10 +122,12 @@ func TestApp_CreateUserIntegration(t *testing.T) {
 		if err == nil {
 			t.Errorf("Expected error, but got nil")
 		}
+		// try to insert the same user with the same payload, expect error
 		resp, err = http.DefaultClient.Do(req)
 		if err != nil {
 			t.Fatal(err)
 		}
+
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			t.Errorf("Unexpected error reading response body: %v", err)
@@ -132,6 +142,7 @@ func TestApp_CreateUserIntegration(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(app.CreateUser))
 		defer server.Close()
 
+		// init request
 		req, err := http.NewRequest("POST", server.URL+"/users", bytes.NewBuffer(badEmailPayload))
 		if err != nil {
 			t.Errorf("Unexpected error in get request to %s", req.URL)
@@ -141,14 +152,17 @@ func TestApp_CreateUserIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 		defer resp.Body.Close()
+
 		if resp.StatusCode != http.StatusBadRequest {
 			t.Errorf("Expected status %d, but got %d", http.StatusBadRequest, resp.StatusCode)
 		}
+		// parse user from response body should be good json, but user should not validate
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			t.Errorf("Unexpected error reading response body: %v", err)
 		}
 
+		// validator should not be happy with the bad payload
 		if string(body) != "User password must be 4 characters long and email must be 5 characters long\n" {
 			t.Errorf("Expected body %s, but got %s", "invalid user\n", string(body))
 		}
