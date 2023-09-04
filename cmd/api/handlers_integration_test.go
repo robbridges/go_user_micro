@@ -125,6 +125,32 @@ func TestApp_CreateUserIntegration(t *testing.T) {
 		}
 		app.userModel.DeleteUser(user.Email)
 	})
+	t.Run("Invalid user", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(app.CreateUser))
+		defer server.Close()
+
+		req, err := http.NewRequest("POST", server.URL+"/users", bytes.NewBuffer(badEmailPayload))
+		if err != nil {
+			t.Errorf("Unexpected error in get request to %s", req.URL)
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Errorf("Expected status %d, but got %d", http.StatusBadRequest, resp.StatusCode)
+		}
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			t.Errorf("Unexpected error reading response body: %v", err)
+		}
+
+		if string(body) != "invalid user\n" {
+			t.Errorf("Expected body %s, but got %s", "invalid user\n", string(body))
+		}
+
+	})
 }
 
 func TestApp_GetUserIntegration(t *testing.T) {
@@ -193,6 +219,31 @@ func TestApp_GetUserIntegration(t *testing.T) {
 			t.Errorf("Expected body %s, but got %s", expectedBody, string(body))
 		}
 
+	})
+	t.Run("Get user Invalid email payload", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(app.getUserByEmail))
+		defer server.Close()
+
+		req, err := http.NewRequest("GET", server.URL+"/users", bytes.NewBuffer(emailOnlyBadPayload))
+		if err != nil {
+			t.Errorf("Unexpected error in get request to %s", req.URL)
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Errorf("Expected status %d, but got %d", http.StatusBadRequest, resp.StatusCode)
+		}
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			t.Errorf("Unexpected error reading response body: %v", err)
+		}
+
+		if string(body) != "invalid user\n" {
+			t.Errorf("Expected body %s, but got %s", "invalid user\n", string(body))
+		}
 	})
 }
 
@@ -268,6 +319,31 @@ func Test_UpdatePasswordIntegration(t *testing.T) {
 
 		if string(body) != expectedBody {
 			t.Errorf("Expected body %s, but got %s", expectedBody, string(body))
+		}
+	})
+	t.Run("Update password Invalid password payload", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(app.updateUserPassword))
+		defer server.Close()
+
+		req, err := http.NewRequest("PATCH", server.URL+"/users", bytes.NewBuffer(badPasswordGoodEmailPayload))
+		if err != nil {
+			t.Errorf("Unexpected error in get request to %s", req.URL)
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Errorf("Expected status %d, but got %d", http.StatusBadRequest, resp.StatusCode)
+		}
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			t.Errorf("Unexpected error reading response body: %v", err)
+		}
+
+		if string(body) != "user password must be greater than 4 characters and less than 72\n" {
+			t.Errorf("Expected body %s, but got %s", "invalid user\n", string(body))
 		}
 	})
 }
