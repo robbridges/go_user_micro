@@ -84,6 +84,9 @@ func TestApp_CreateUserIntegration(t *testing.T) {
 		if user.Email != expectedEmail {
 			t.Errorf("Expected email %s, but got %s", expectedEmail, user.Email)
 		}
+		if resp.Header.Get("Set-Cookie") == "" {
+			t.Error("Expected cookie to be set, but got none")
+		}
 		app.userModel.DeleteUser(user.Email)
 	})
 	t.Run("Duplicate user", func(t *testing.T) {
@@ -146,7 +149,7 @@ func TestApp_CreateUserIntegration(t *testing.T) {
 			t.Errorf("Unexpected error reading response body: %v", err)
 		}
 
-		if string(body) != "invalid user\n" {
+		if string(body) != "User password must be 4 characters long and email must be 5 characters long\n" {
 			t.Errorf("Expected body %s, but got %s", "invalid user\n", string(body))
 		}
 
@@ -241,7 +244,7 @@ func TestApp_GetUserIntegration(t *testing.T) {
 			t.Errorf("Unexpected error reading response body: %v", err)
 		}
 
-		if string(body) != "invalid user\n" {
+		if string(body) != "User password must be 4 characters long and email must be 5 characters long \n" {
 			t.Errorf("Expected body %s, but got %s", "invalid user\n", string(body))
 		}
 	})

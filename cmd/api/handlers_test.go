@@ -89,7 +89,9 @@ func TestApp_CreateUser(t *testing.T) {
 		if response.Password == "securepassword" {
 			t.Errorf("Expected password to be encrypted, but got %s", response.Password)
 		}
-
+		if rr.Header().Get("Set-Cookie") == "" {
+			t.Errorf("Expected cookie to be set, but got %s", rr.Header().Get("Set-Cookie"))
+		}
 		// cast user model to mock to check array length
 		app.checkMockDBSize(t, 1)
 	})
@@ -160,7 +162,7 @@ func TestApp_CreateUser(t *testing.T) {
 		if rr.Code != http.StatusBadRequest {
 			t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, rr.Code)
 		}
-		if string(rr.Body.String()) != "invalid user\n" {
+		if string(rr.Body.String()) != "User password must be 4 characters long and email must be 5 characters long\n" {
 			t.Errorf("Expected bad user error, got %s", rr.Body.String())
 		}
 		app.checkMockDBSize(t, 0)
@@ -266,7 +268,7 @@ func TestApp_getUserByEmail(t *testing.T) {
 		if rr.Code != http.StatusBadRequest {
 			t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, rr.Code)
 		}
-		if string(rr.Body.String()) != "invalid user\n" {
+		if string(rr.Body.String()) != "User password must be 4 characters long and email must be 5 characters long \n" {
 			t.Errorf("Expected bad user error, got %s", rr.Body.String())
 		}
 	})

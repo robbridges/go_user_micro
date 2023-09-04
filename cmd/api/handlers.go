@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"the_lonely_road/JWT"
 	"the_lonely_road/models"
 	"the_lonely_road/validator"
 	"time"
@@ -41,7 +42,7 @@ func (app *App) CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if models.ValidateUser(v, &user); !v.Valid() {
-		v.AddError("message", "invalid user")
+		v.AddError("message", "User password must be 4 characters long and email must be 5 characters long")
 		http.Error(w, v.Errors["message"], http.StatusBadRequest)
 		return
 	}
@@ -52,7 +53,16 @@ func (app *App) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	app.writeJSON(w, 200, &user)
+	token, err := JWT.GenerateJWT(int(user.ID))
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	// Set the token in a cookie
+	JWT.SetAuthCookie(w, token)
+
+	app.writeJSON(w, http.StatusOK, &user)
 }
 
 func (app *App) getUserByEmail(w http.ResponseWriter, r *http.Request) {
@@ -66,7 +76,7 @@ func (app *App) getUserByEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if models.ValidateEmail(v, payload.Email); !v.Valid() {
-		v.AddError("message", "invalid user")
+		v.AddError("message", "User password must be 4 characters long and email must be 5 characters long ")
 		http.Error(w, v.Errors["message"], http.StatusBadRequest)
 		return
 	}
