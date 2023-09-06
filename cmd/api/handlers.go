@@ -58,7 +58,7 @@ func (app *App) CreateUser(w http.ResponseWriter, r *http.Request) {
 
 	token, err := JWT.GenerateJWT(int(user.ID))
 	if err != nil {
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		http.Error(w, errors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
 
