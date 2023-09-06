@@ -273,7 +273,7 @@ func TestApp_getUserByEmail(t *testing.T) {
 		if rr.Code != http.StatusBadRequest {
 			t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, rr.Code)
 		}
-		if string(rr.Body.String()) != "User password must be 4 characters long and email must be 5 characters long \n" {
+		if string(rr.Body.String()) != "User password must be 4 characters long and email must be 5 characters long\n" {
 			t.Errorf("Expected bad user error, got %s", rr.Body.String())
 		}
 	})

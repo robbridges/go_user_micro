@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 	"the_lonely_road/JWT"
+	"the_lonely_road/errors"
 	"the_lonely_road/models"
 	"the_lonely_road/validator"
 	"time"
@@ -44,7 +45,7 @@ func (app *App) CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if models.ValidateUser(v, &user); !v.Valid() {
-		v.AddError("message", "User password must be 4 characters long and email must be 5 characters long")
+		v.AddError("message", errors.InvalidUser)
 		http.Error(w, v.Errors["message"], http.StatusBadRequest)
 		return
 	}
@@ -79,7 +80,7 @@ func (app *App) getUserByEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if models.ValidateEmail(v, payload.Email); !v.Valid() {
-		v.AddError("message", "User password must be 4 characters long and email must be 5 characters long ")
+		v.AddError("message", errors.InvalidUser)
 		http.Error(w, v.Errors["message"], http.StatusBadRequest)
 		return
 	}
@@ -107,7 +108,7 @@ func (app *App) updateUserPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if models.ValidatePasswordPlaintext(v, payload.Password); !v.Valid() {
-		v.AddError("message", "user password must be greater than 4 characters and less than 72")
+		v.AddError("message", errors.InvalidPassword)
 		http.Error(w, v.Errors["message"], http.StatusBadRequest)
 		return
 	}

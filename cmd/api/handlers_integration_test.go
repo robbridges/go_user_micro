@@ -258,7 +258,7 @@ func TestApp_GetUserIntegration(t *testing.T) {
 			t.Errorf("Unexpected error reading response body: %v", err)
 		}
 
-		if string(body) != "User password must be 4 characters long and email must be 5 characters long \n" {
+		if string(body) != "User password must be 4 characters long and email must be 5 characters long\n" {
 			t.Errorf("Expected body %s, but got %s", "invalid user\n", string(body))
 		}
 	})
