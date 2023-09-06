@@ -8,11 +8,13 @@ import (
 func (app *App) SetRoutes() http.Handler {
 	r := chi.NewRouter()
 
+	//middleware
+	r.Use(app.recoverPanic)
+
 	r.Get("/", app.HandleHome)
 	r.Post("/users", app.CreateUser)
 	r.Patch("/users", app.updateUserPassword)
 	r.Get("/users", app.getUserByEmail)
-	// Define more routes here
 
 	return r
 }
