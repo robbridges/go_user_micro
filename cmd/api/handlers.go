@@ -125,3 +125,39 @@ func (app *App) updateUserPassword(w http.ResponseWriter, r *http.Request) {
 	}
 	app.writeJSON(w, 200, &user)
 }
+
+func (app *App) Authenticate(w http.ResponseWriter, r *http.Request) {
+	var payload struct {
+		Email    string
+		Password string
+	}
+	v := validator.New()
+
+	err := app.readJSON(w, r, &payload)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if models.ValidateEmail(v, payload.Email); !v.Valid() {
+		v.AddError("message", errors.InvalidUser)
+		http.Error(w, v.Errors["message"], http.StatusBadRequest)
+		return
+	}
+
+	user, err := app.userModel.Authenticate(payload.Email, payload.Password)
+	if err != nil {
+		http.Error(w, errors.InvalidCredentials, http.StatusBadRequest)
+		return
+	}
+
+	token, err := JWT.GenerateJWT(int(user.ID))
+	if err != nil {
+		http.Error(w, errors.InternalServerError, http.StatusInternalServerError)
+		return
+	}
+
+	// Set the token in a cookie
+	JWT.SetAuthCookie(w, token)
+
+	app.writeJSON(w, 200, &user)
+}

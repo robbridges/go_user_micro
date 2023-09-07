@@ -15,6 +15,6 @@ func (app *App) SetRoutes() http.Handler {
 	r.Post("/users", app.CreateUser)
 	r.Patch("/users", app.updateUserPassword)
 	r.Get("/users", app.getUserByEmail)
-
+	r.Post("/users/login", app.Authenticate)
 	return r
 }

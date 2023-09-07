@@ -377,6 +377,50 @@ func TestApp_updateUserPassword(t *testing.T) {
 
 }
 
+func TestApp_Authenticate(t *testing.T) {
+	app := App{userModel: &models.UserModelMock{DB: []*models.User{}}}
+	user := models.User{
+		ID:        1,
+		Password:  "admin",
+		Email:     "admin@admin.com",
+		CreatedAt: time.Now(),
+	}
+
+	mockModel, ok := app.userModel.(*models.UserModelMock)
+	if !ok {
+		t.Errorf("Expected app.userModel to be of type UserModelMock")
+	}
+	// actually insert the model instead of just appending to encrypt the password I should have done this everywhere.
+	err := mockModel.Insert(&user)
+	if err != nil {
+		t.Errorf("Unexpected error in inserting user")
+	}
+	t.Run("Happy Path", func(t *testing.T) {
+		payload = []byte(`{"email": "admin@admin.com", "password": "admin"}`)
+		req, err := http.NewRequest("POST", "/users/login", bytes.NewBuffer(payload))
+		if err != nil {
+			t.Errorf("Unexpected error in POST request to /users/login")
+		}
+		rr := httptest.NewRecorder()
+
+		app.Authenticate(rr, req)
+		if rr.Code != http.StatusOK {
+			t.Errorf("Expected status code %d, got %d", http.StatusOK, rr.Code)
+		}
+		var responseUser models.User
+		err = json.Unmarshal(rr.Body.Bytes(), &responseUser)
+		if err != nil {
+			t.Errorf("Error unmarshaling JSON: %v", err)
+		}
+		if responseUser.Email != user.Email {
+			t.Errorf("Expected email to be %s, got %s", user.Email, responseUser.Email)
+		}
+		if rr.Header().Get("Set-Cookie") == "" {
+			t.Errorf("Expected cookie to be set, but got %s", rr.Header().Get("Set-Cookie"))
+		}
+	})
+}
+
 func (app *App) checkMockDBSize(t *testing.T, expected int) {
 	mockModel, ok := app.userModel.(*models.UserModelMock)
 	if !ok {
