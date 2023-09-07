@@ -183,3 +183,56 @@ func TestUserModel_DeleteUser(t *testing.T) {
 		}
 	})
 }
+
+func TestUserModel_Authenticate(t *testing.T) {
+	cfg := data.TestPostgresConfig()
+	db, err := data.Open(cfg)
+	if err != nil {
+		t.Errorf("Expected no error, got %s", err)
+	}
+	defer db.Close()
+	userModel := &UserModel{DB: db}
+
+	t.Run("Authenticate happy path", func(t *testing.T) {
+		userToDelete := User{
+			Email:    "authenticateuser@localhost",
+			Password: "veryinsecurepassword",
+		}
+		passwwordBeforeHash := userToDelete.Password
+		userModel.Insert(&userToDelete)
+		user, err := userModel.Authenticate(userToDelete.Email, passwwordBeforeHash)
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
+		}
+		if user.Email != userToDelete.Email {
+			t.Errorf("Expected user to be returned")
+		}
+		userModel.DeleteUser(userToDelete.Email)
+
+	})
+	t.Run("invalid password", func(t *testing.T) {
+		userToDelete := User{
+			Email:    "authenticateuser@localhost",
+			Password: "veryinsecurepassword",
+		}
+		err := userModel.Insert(&userToDelete)
+		user, err := userModel.Authenticate(userToDelete.Email, "invalidpassword")
+		if err == nil {
+			t.Errorf("Expected error, got nil")
+		}
+		if user != nil {
+			t.Errorf("Expected nil, got user")
+		}
+		err = userModel.DeleteUser(userToDelete.Email)
+	})
+	t.Run("User not found", func(t *testing.T) {
+		user, err := userModel.Authenticate("notfound", "notfound")
+		if err == nil {
+			t.Errorf("Expected error, got nil")
+		}
+		if user != nil {
+			t.Errorf("Expected nil, got user")
+		}
+	})
+
+}

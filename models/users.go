@@ -134,7 +134,7 @@ func (m *UserModel) Authenticate(email, password string) (*User, error) {
 	}
 
 	row := m.DB.QueryRow(
-		`SELECT id, password
+		`SELECT id, password_hash
 		FROM users WHERE email=$1`, email,
 	)
 

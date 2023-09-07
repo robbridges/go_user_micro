@@ -1,14 +1,6 @@
 mode: set
 the_lonely_road/JWT/jwt.go:12.46,29.2 9 1
 the_lonely_road/JWT/jwt.go:31.57,43.2 2 1
-the_lonely_road/data/postgres.go:18.46,27.2 1 1
-the_lonely_road/data/postgres.go:29.43,38.2 1 1
-the_lonely_road/data/postgres.go:40.52,46.16 2 1
-the_lonely_road/data/postgres.go:46.16,48.3 1 0
-the_lonely_road/data/postgres.go:49.2,50.16 2 1
-the_lonely_road/data/postgres.go:50.16,52.3 1 0
-the_lonely_road/data/postgres.go:54.2,54.16 1 1
-the_lonely_road/data/postgres.go:57.44,60.2 1 1
 the_lonely_road/validator/validator.go:9.23,11.2 1 1
 the_lonely_road/validator/validator.go:13.34,15.2 1 1
 the_lonely_road/validator/validator.go:17.51,18.41 1 1
@@ -82,6 +74,14 @@ the_lonely_road/cmd/api/middleware.go:10.16,11.36 1 1
 the_lonely_road/cmd/api/middleware.go:11.36,16.5 2 1
 the_lonely_road/cmd/api/middleware.go:19.3,19.23 1 1
 the_lonely_road/cmd/api/routes.go:8.42,20.2 7 1
+the_lonely_road/data/postgres.go:18.46,27.2 1 1
+the_lonely_road/data/postgres.go:29.43,38.2 1 1
+the_lonely_road/data/postgres.go:40.52,46.16 2 1
+the_lonely_road/data/postgres.go:46.16,48.3 1 0
+the_lonely_road/data/postgres.go:49.2,50.16 2 1
+the_lonely_road/data/postgres.go:50.16,52.3 1 0
+the_lonely_road/data/postgres.go:54.2,54.16 1 1
+the_lonely_road/data/postgres.go:57.44,60.2 1 1
 the_lonely_road/models/users.go:37.56,39.16 2 1
 the_lonely_road/models/users.go:39.16,42.3 1 0
 the_lonely_road/models/users.go:43.2,43.33 1 1
@@ -104,11 +104,11 @@ the_lonely_road/models/users.go:118.16,120.3 1 0
 the_lonely_road/models/users.go:121.2,122.23 2 1
 the_lonely_road/models/users.go:122.23,124.3 1 1
 the_lonely_road/models/users.go:126.2,126.12 1 1
-the_lonely_road/models/users.go:130.73,142.16 5 0
-the_lonely_road/models/users.go:142.16,144.3 1 0
-the_lonely_road/models/users.go:146.2,148.16 2 0
-the_lonely_road/models/users.go:148.16,150.3 1 0
-the_lonely_road/models/users.go:152.2,152.19 1 0
+the_lonely_road/models/users.go:130.73,142.16 5 1
+the_lonely_road/models/users.go:142.16,144.3 1 1
+the_lonely_road/models/users.go:146.2,148.16 2 1
+the_lonely_road/models/users.go:148.16,150.3 1 1
+the_lonely_road/models/users.go:152.2,152.19 1 1
 the_lonely_road/models/users.go:155.56,161.16 5 1
 the_lonely_road/models/users.go:161.16,163.3 1 0
 the_lonely_road/models/users.go:164.2,165.23 2 1
