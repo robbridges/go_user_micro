@@ -419,6 +419,67 @@ func TestApp_Authenticate(t *testing.T) {
 			t.Errorf("Expected cookie to be set, but got %s", rr.Header().Get("Set-Cookie"))
 		}
 	})
+	t.Run("Bad email", func(t *testing.T) {
+
+		req, err := http.NewRequest("POST", "/users/login", bytes.NewBuffer(badEmailPayload))
+		if err != nil {
+			t.Errorf("Unexpected error in POST request to /users/login")
+		}
+		rr := httptest.NewRecorder()
+		app.Authenticate(rr, req)
+		if rr.Code != http.StatusBadRequest {
+			t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, rr.Code)
+		}
+		if rr.Body.String() != "User password must be 4 characters long and email must be 5 characters long\n" {
+			t.Errorf("Expected bad email error, got %s", rr.Body.String())
+		}
+
+	})
+	t.Run("Bad json", func(t *testing.T) {
+		payload = []byte(`{"email": "admin@admin.com" "password": "admin"}`)
+		req, err := http.NewRequest("POST", "/users/login", bytes.NewBuffer(badPayload))
+		if err != nil {
+			t.Errorf("Unexpected error in POST request to /users/login")
+		}
+		rr := httptest.NewRecorder()
+		app.Authenticate(rr, req)
+		if rr.Code != http.StatusBadRequest {
+			t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, rr.Code)
+		}
+		if rr.Body.String() != "body contains bady-form JSON (at character 30)\n" {
+			t.Errorf("Expected bad json error, got %s", rr.Body.String())
+		}
+	})
+	t.Run("User not found", func(t *testing.T) {
+		payload = []byte(`{"email": "notfound", "password": "admin"}`)
+		req, err := http.NewRequest("POST", "/users/login", bytes.NewBuffer(payload))
+		if err != nil {
+			t.Errorf("Unexpected error in POST request to /users/login")
+		}
+		rr := httptest.NewRecorder()
+		app.Authenticate(rr, req)
+		if rr.Code != http.StatusBadRequest {
+			t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, rr.Code)
+		}
+		if rr.Body.String() != "Invalid Credentials\n" {
+			t.Errorf("Expected record not found error, got %s", rr.Body.String())
+		}
+	})
+	t.Run("Bad password", func(t *testing.T) {
+		payload = []byte(`{"email": "admin@admin.com", "password": "badpassword"}`)
+		req, err := http.NewRequest("POST", "/users/login", bytes.NewBuffer(payload))
+		if err != nil {
+			t.Errorf("Unexpected error in POST request to /users/login")
+		}
+		rr := httptest.NewRecorder()
+		app.Authenticate(rr, req)
+		if rr.Code != http.StatusBadRequest {
+			t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, rr.Code)
+		}
+		if rr.Body.String() != "Invalid Credentials\n" {
+			t.Errorf("Expected record not found error, got %s", rr.Body.String())
+		}
+	})
 }
 
 func (app *App) checkMockDBSize(t *testing.T, expected int) {
