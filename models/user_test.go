@@ -122,6 +122,47 @@ func TestUserModelMock_DeleteUser(t *testing.T) {
 	})
 }
 
+func TestUserModelMock_Authenticate(t *testing.T) {
+	mockUser := User{
+		ID:        3,
+		Email:     "mock@userx.com",
+		Password:  "mockpassword",
+		CreatedAt: time.Now(),
+	}
+	// need to get acopy of the plaintext before the hash is created
+	passwordBefore := mockUser.Password
+	userModel := UserModelMock{}
+	err := userModel.Insert(&mockUser)
+	if err != nil {
+		t.Errorf("Expected no error, got %s", err)
+	}
+	// compare user hashed password to it's plaintext
+	t.Run("Happy path", func(t *testing.T) {
+		user, err := userModel.Authenticate(mockUser.Email, passwordBefore)
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
+		}
+		if user == nil {
+			t.Errorf("Expected user to be returned")
+		}
+		if user.Password == passwordBefore {
+			t.Errorf("Expected password to be encrypted")
+		}
+	})
+	t.Run("Wrong password", func(t *testing.T) {
+		_, err := userModel.Authenticate(mockUser.Email, "wrongpassword")
+		if err == nil && err.Error() != "compare() error: crypto/bcrypt: hashedPassword is not the hash of the given password" {
+			t.Errorf("Expected error, got %s", err)
+		}
+	})
+	t.Run("User not found", func(t *testing.T) {
+		_, err := userModel.Authenticate("notfound", "notfound")
+		if err == nil && err.Error() != "user not found" {
+			t.Errorf("Expected error, got %s", err)
+		}
+	})
+}
+
 func TestValidateEmail(t *testing.T) {
 	t.Run("Happy path", func(t *testing.T) {
 		v := validator.New()

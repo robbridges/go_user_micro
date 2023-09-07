@@ -16,6 +16,7 @@ type IUserModel interface {
 	GetByEmail(email string) (*User, error)
 	UpdatePassword(userID int, password string) error
 	DeleteUser(userEmail string) error
+	Authenticate(email, password string) (*User, error)
 }
 
 type User struct {
@@ -126,6 +127,31 @@ func (m *UserModel) UpdatePassword(userID int, password string) error {
 
 }
 
+func (m *UserModel) Authenticate(email, password string) (*User, error) {
+	email = strings.ToLower(email)
+	user := User{
+		Email: email,
+	}
+
+	row := m.DB.QueryRow(
+		`SELECT id, password
+		FROM users WHERE email=$1`, email,
+	)
+
+	err := row.Scan(&user.ID, &user.Password)
+	if err != nil {
+		return nil, fmt.Errorf("authenticate: %w", err)
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+
+	if err != nil {
+		return nil, fmt.Errorf("compare() error: %v", err)
+	}
+
+	return &user, nil
+}
+
 func (m *UserModel) DeleteUser(userEmail string) error {
 	query := `delete from users where email = $1`
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
@@ -190,6 +216,20 @@ func (mockUM *UserModelMock) DeleteUser(userEmail string) error {
 		}
 	}
 	return errors.New("no data")
+}
+
+func (mockUM *UserModelMock) Authenticate(email, password string) (*User, error) {
+	email = strings.ToLower(email)
+	for _, user := range mockUM.DB {
+		if user.Email == email {
+			err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+			if err != nil {
+				return nil, fmt.Errorf("compare() error: %v", err)
+			}
+			return user, nil
+		}
+	}
+	return nil, errors.New("no data")
 }
 
 func ValidateEmail(v *validator.Validator, email string) {
