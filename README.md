@@ -14,6 +14,6 @@ everyone is free to use this service if they would like, it is well tested and f
 - [x] Implement basic user retrieval
 - [x] Implement basic user retrieval by email
 - [x] Implement panic recovery middleware
-- [] Implement Cors middleware
-- 
-- 
+- [] Implement CORS
+- [] General cleanup - tests are very verbose and repitive, I'm okay with that as they're also to document how to use the 
+     service but there's also likely a better way
