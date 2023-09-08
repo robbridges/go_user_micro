@@ -7,9 +7,11 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"strings"
 	"testing"
 	"the_lonely_road/data"
 	"the_lonely_road/models"
+	"time"
 )
 
 func TestApp_HandleHomeIntegration(t *testing.T) {
@@ -363,4 +365,136 @@ func Test_UpdatePasswordIntegration(t *testing.T) {
 			t.Errorf("Expected body %s, but got %s", "invalid user\n", string(body))
 		}
 	})
+}
+
+func TestApp_AuthenticateIntegration(t *testing.T) {
+	testCfg := data.TestPostgresConfig()
+	testDB, err := data.Open(testCfg)
+	defer testDB.Close()
+	if err != nil {
+		t.Errorf("Expected database to open, but got %s", err)
+	}
+	app := App{userModel: &models.UserModel{DB: testDB}}
+
+	t.Run("Authenticate Happy path", func(t *testing.T) {
+		user := models.User{
+			Email:     "deleteme",
+			Password:  "deleteme",
+			CreatedAt: time.Now(),
+		}
+		// just dummy insert it without making another request to make testing more efficent the add handler has already
+		// been tested
+		err := app.userModel.Insert(&user)
+		if err != nil {
+
+		}
+		server := httptest.NewServer(http.HandlerFunc(app.Authenticate))
+		defer server.Close()
+		var emailPayload = []byte(`{"email": "deleteme", "password": "deleteme"}`)
+		req, err := http.NewRequest("POST", server.URL+"/users/login)", bytes.NewBuffer(emailPayload))
+		if err != nil {
+			t.Errorf("Unexpected error in get request to %s", req.URL)
+		}
+		resp, err := http.DefaultClient.Do(req)
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			t.Errorf("Expected status %d, but got %d", http.StatusOK, resp.StatusCode)
+		}
+
+		var userReturned models.User
+		err = json.NewDecoder(resp.Body).Decode(&userReturned)
+		if err != nil {
+			t.Errorf("Error unmarshaling JSON: %v", err)
+		}
+		userReturned.CreatedAt = user.CreatedAt
+		if userReturned.Email != user.Email {
+			t.Errorf("Expected user %v, but got %v", user, userReturned)
+		}
+		err = app.userModel.DeleteUser(user.Email)
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
+		}
+	})
+	t.Run("Authenticate Sad path", func(t *testing.T) {
+		user := models.User{
+			Email:     "deleteme",
+			Password:  "deleteme",
+			CreatedAt: time.Now(),
+		}
+		// just dummy insert it without making another request to make testing more efficent the add handler has already
+		// been tested
+		err := app.userModel.Insert(&user)
+		if err != nil {
+
+		}
+		server := httptest.NewServer(http.HandlerFunc(app.Authenticate))
+		defer server.Close()
+		var emailPayload = []byte(`{"email": "deleteme", "password": "wrongpassword"}`)
+		req, err := http.NewRequest("POST", server.URL+"/users/login)", bytes.NewBuffer(emailPayload))
+		if err != nil {
+			t.Errorf("Unexpected error in get request to %s", req.URL)
+		}
+		resp, err := http.DefaultClient.Do(req)
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Errorf("Expected status %d, but got %d", http.StatusBadRequest, resp.StatusCode)
+		}
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			t.Errorf("Unexpected error reading response body: %v", err)
+		}
+		want := "Invalid Credentials\n"
+		if string(body) != want {
+			t.Errorf("Expected body %s, but got %s", want, string(body))
+		}
+	})
+	t.Run("Authenticate Invalid payload", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(app.Authenticate))
+		defer server.Close()
+
+		req, err := http.NewRequest("POST", server.URL+"/users/login", bytes.NewBuffer(badPayload))
+		if err != nil {
+			t.Errorf("Unexpected error in get request to %s", req.URL)
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Errorf("Expected status %d, but got %d", http.StatusBadRequest, resp.StatusCode)
+		}
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			t.Errorf("Unexpected error reading response body: %v", err)
+		}
+		want := "body contains"
+		if !strings.Contains(string(body), "body contains") {
+			t.Errorf("Expected body %s, but got %s", want, string(body))
+		}
+	})
+	t.Run("Authenticate Invalid email", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(app.Authenticate))
+		defer server.Close()
+
+		req, err := http.NewRequest("POST", server.URL+"/users/login", bytes.NewBuffer(badEmailPayload))
+		if err != nil {
+			t.Errorf("Unexpected error in get request to %s", req.URL)
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			t.Errorf("Unexpected error reading response body: %v", err)
+		}
+		want := "User password must be 4 characters long and email must be 5 characters long\n"
+		if string(body) != want {
+			t.Errorf("Expected body %s, but got %s", want, string(body))
+		}
+	})
+
 }
