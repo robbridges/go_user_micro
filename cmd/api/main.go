@@ -2,13 +2,13 @@ package main
 
 import (
 	"fmt"
-	"net/http"
-	"the_lonely_road/data"
+	"sync"
 	"the_lonely_road/models"
 )
 
 type App struct {
 	userModel models.IUserModel
+	wg        sync.WaitGroup
 }
 
 const (
@@ -18,23 +18,7 @@ const (
 func main() {
 
 	app := App{}
-	svr := http.Server{
-		Addr:    fmt.Sprintf(":%s", port),
-		Handler: app.SetRoutes(),
-	}
-
-	cfg := data.DefaultPostgresConfig()
-	db, err := data.Open(cfg)
-	if err != nil {
-		panic(err)
-	}
-
-	defer db.Close()
-	app.userModel = &models.UserModel{
-		DB: db,
-	}
-
-	err = svr.ListenAndServe()
+	err := app.Serve()
 	if err != nil {
 		fmt.Println(err)
 	}

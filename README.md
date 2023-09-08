@@ -18,7 +18,7 @@ everyone is free to use this service if they would like, it is well tested and f
 - [x] Implement Postgres connection
 - [x] Implement Postgres test database
 - [x] Implement Migrations
-- [] Implement Graceful shutdown
+- [x] Implement Graceful shutdown
 - [] Sending email as password reset
 - [] Implement CORS
 - [] General cleanup - tests are very verbose and repetitive, I'm okay with that as they're also to document how to use the 
