@@ -386,7 +386,7 @@ func TestApp_AuthenticateIntegration(t *testing.T) {
 		// been tested
 		err := app.userModel.Insert(&user)
 		if err != nil {
-
+			t.Errorf("Expected no error, got %s", err)
 		}
 		server := httptest.NewServer(http.HandlerFunc(app.Authenticate))
 		defer server.Close()
@@ -425,7 +425,7 @@ func TestApp_AuthenticateIntegration(t *testing.T) {
 		// been tested
 		err := app.userModel.Insert(&user)
 		if err != nil {
-
+			t.Errorf("Expected no error, got %s", err)
 		}
 		server := httptest.NewServer(http.HandlerFunc(app.Authenticate))
 		defer server.Close()
