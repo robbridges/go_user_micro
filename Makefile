@@ -4,6 +4,10 @@ setup:
 	docker compose -f docker-compose.yml up -d
 tearDown:
 	docker compose -f docker-compose.yml down
+tearDownTest:
+	@echo 'Tearing down test container...'
+	docker stop $(container_name)
+	docker rm $(container_name)
 migration:
 	@echo 'Creating migration files for ${name}...'
 	migrate create -ext=.sql -dir=./migrations ${name}

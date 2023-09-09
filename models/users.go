@@ -20,10 +20,12 @@ type IUserModel interface {
 }
 
 type User struct {
-	ID        int64     `json:"id"`
-	Password  string    `json:"password"`
-	Email     string    `json:"email"`
-	CreatedAt time.Time `json:"created_at"`
+	ID                  int64     `json:"id"`
+	Password            string    `json:"password"`
+	Email               string    `json:"email"`
+	CreatedAt           time.Time `json:"created_at"`
+	passwordResetToken  string    `json:"password_reset_token,omitempty"`
+	passwordResetExpiry time.Time `json:"password_reset_expiry,omitempty"`
 }
 
 type UserModel struct {
