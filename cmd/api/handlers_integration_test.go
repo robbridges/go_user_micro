@@ -181,6 +181,7 @@ func TestApp_GetUserIntegration(t *testing.T) {
 	}
 	app := App{userModel: &models.UserModel{DB: testDB}}
 	t.Run("Get user Happy path", func(t *testing.T) {
+
 		server := httptest.NewServer(http.HandlerFunc(app.getUserByEmail))
 		defer server.Close()
 		payloadEmailOnly := []byte(`{"email": "admin@localhost"}`)
@@ -196,11 +197,13 @@ func TestApp_GetUserIntegration(t *testing.T) {
 		if resp.StatusCode != http.StatusOK {
 			t.Errorf("Expected status %d, but got %d", http.StatusOK, resp.StatusCode)
 		}
+
 		var userReturned models.User
 		err = json.NewDecoder(resp.Body).Decode(&userReturned)
 		if err != nil {
 			t.Errorf("Error unmarshaling JSON: %v", err)
 		}
+		t.Log(userReturned)
 		var expectedUser = models.User{
 			ID:       1,
 			Email:    "admin@localhost",

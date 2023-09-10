@@ -17,6 +17,7 @@ type IUserModel interface {
 	UpdatePassword(userID int, password string) error
 	DeleteUser(userEmail string) error
 	Authenticate(email, password string) (*User, error)
+	EnterPasswordHash(email, passwordHash, salt string) error
 }
 
 type User struct {
@@ -24,9 +25,9 @@ type User struct {
 	Password               string    `json:"password"`
 	Email                  string    `json:"email"`
 	CreatedAt              time.Time `json:"created_at"`
-	passwordResetHashToken string    `json:"password_reset_token,omitempty"`
-	passwordResetExpiry    time.Time `json:"password_reset_expiry,omitempty"`
-	passwordResetSalt      string    `json:"password_reset_salt,omitempty"`
+	PasswordResetHashToken string    `json:"-"`
+	PasswordResetExpiry    time.Time `json:"-"`
+	PasswordResetSalt      string    `json:"-"`
 }
 
 type UserModel struct {
@@ -53,11 +54,11 @@ func (m *UserModel) Insert(user *User) error {
 	}
 	user.Password = hashedPassword
 	query := `
-	INSERT INTO users (email, password_hash, created_at)
-	VALUES ($1, $2, $3)
+	INSERT INTO users (email, password_hash, created_at, password_reset_expires, password_reset_token, password_reset_salt)
+	VALUES ($1, $2, $3, $4, $5, $6)
 	RETURNING id`
 
-	args := []interface{}{user.Email, user.Password, user.CreatedAt}
+	args := []interface{}{user.Email, user.Password, user.CreatedAt, user.PasswordResetExpiry, user.PasswordResetHashToken, user.PasswordResetSalt}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
@@ -76,7 +77,7 @@ func (m *UserModel) Insert(user *User) error {
 
 func (m *UserModel) GetByEmail(email string) (*User, error) {
 	query := `
-	SELECT id, password_hash, email, created_at
+	SELECT id, password_hash, email, created_at, password_reset_expires, password_reset_token, password_reset_salt
 	FROM users
 	WHERE email = $1`
 
@@ -90,6 +91,9 @@ func (m *UserModel) GetByEmail(email string) (*User, error) {
 		&user.Password,
 		&user.Email,
 		&user.CreatedAt,
+		&user.PasswordResetExpiry,
+		&user.PasswordResetHashToken,
+		&user.PasswordResetSalt,
 	)
 
 	if err != nil {
@@ -128,6 +132,28 @@ func (m *UserModel) UpdatePassword(userID int, password string) error {
 
 	return nil
 
+}
+
+func (m *UserModel) EnterPasswordHash(email, passwordHash, salt string) error {
+	expiry := time.Now().Add(30 * time.Minute)
+	query := `UPDATE users
+	SET password_reset_expires = $1,
+		password_reset_token = $2,
+		password_reset_salt = $3
+	WHERE email = $4
+	RETURNING password_reset_expires, password_reset_token, password_reset_salt;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	result, err := m.DB.ExecContext(ctx, query, expiry, passwordHash, salt, email)
+	if err != nil {
+		return err
+	}
+	rowsAffected, err := result.RowsAffected()
+	if rowsAffected == 0 {
+		return errors.New("user not found")
+	}
+	return nil
 }
 
 func (m *UserModel) Authenticate(email, password string) (*User, error) {
@@ -233,6 +259,10 @@ func (mockUM *UserModelMock) Authenticate(email, password string) (*User, error)
 		}
 	}
 	return nil, errors.New("no data")
+}
+
+func (mockUM *UserModelMock) EnterPasswordHash(email, passwordHash, salt string) error {
+	return nil
 }
 
 func ValidateEmail(v *validator.Validator, email string) {

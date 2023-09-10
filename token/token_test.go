@@ -7,10 +7,11 @@ func TestGenerateTokenAndSalt(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(token) != 32 {
+	// we convert them to strings and it adds more bytes
+	if len(token) != 44 {
 		t.Errorf("want %d; got %d", 32, len(token))
 	}
-	if len(salt) != 16 {
+	if len(salt) != 24 {
 		t.Errorf("want %d; got %d", 16, len(salt))
 	}
 }
@@ -21,7 +22,7 @@ func TestHashToken(t *testing.T) {
 		t.Fatal(err)
 	}
 	hashedToken := HashToken(token, salt)
-	want := 32
+	want := 44
 	if len(hashedToken) != want {
 		t.Errorf("want %d; got %d", want, len(hashedToken))
 	}

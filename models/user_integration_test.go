@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"testing"
 	"the_lonely_road/data"
+	"the_lonely_road/token"
 	"time"
 )
 
@@ -13,10 +14,13 @@ type App struct {
 
 func TestUserModel_Insert(t *testing.T) {
 	mockUser := User{
-		ID:        1,
-		Email:     "justatest@test.com",
-		Password:  "mockpassword",
-		CreatedAt: time.Now(),
+		ID:                     1,
+		Email:                  "justatest@test.com",
+		Password:               "mockpassword",
+		CreatedAt:              time.Now(),
+		PasswordResetSalt:      "test_salt",
+		PasswordResetExpiry:    time.Now().Add(24 * time.Hour), // Set an expiration time
+		PasswordResetHashToken: "test_token",
 	}
 
 	cfg := data.TestPostgresConfig()
@@ -75,9 +79,17 @@ func TestUserModel_GetByEmail(t *testing.T) {
 	userModel := &UserModel{DB: db}
 	t.Run("User Found", func(t *testing.T) {
 		userToInsert := User{
-			ID:       1,
-			Email:    "admin@localhost",
-			Password: "$2a$10$m2RvoCSnhAMGZggN1SPPsOwlSC8Ne0EX.wi7EHK2/pKKmoOmDQsUe",
+			ID:                     1,
+			Email:                  "testuser@localhost",
+			Password:               "mockpassword",
+			CreatedAt:              time.Now(),
+			PasswordResetSalt:      "test_salt",
+			PasswordResetExpiry:    time.Now().Add(24 * time.Hour), // Set an expiration time
+			PasswordResetHashToken: "test_token",
+		}
+		err := userModel.Insert(&userToInsert)
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
 		}
 
 		user, err := userModel.GetByEmail(userToInsert.Email)
@@ -88,6 +100,7 @@ func TestUserModel_GetByEmail(t *testing.T) {
 		if reflect.DeepEqual(user, &userToInsert) {
 			t.Errorf("Expected user to be returned")
 		}
+		err = userModel.DeleteUser(userToInsert.Email)
 	})
 	t.Run("User Not Found", func(t *testing.T) {
 		_, err := userModel.GetByEmail("notfound")
@@ -235,4 +248,51 @@ func TestUserModel_Authenticate(t *testing.T) {
 		}
 	})
 
+}
+
+func TestUserModel_EnterPasswordHash(t *testing.T) {
+	cfg := data.TestPostgresConfig()
+	db, err := data.Open(cfg)
+	if err != nil {
+		t.Errorf("Expected no error, got %s", err)
+	}
+	defer db.Close()
+	userModel := &UserModel{DB: db}
+
+	t.Run("EnterPasswordHash happy path", func(t *testing.T) {
+		userToDelete := User{
+			Email:    "deleteuser@localhost",
+			Password: "veryinsecurepassword",
+		}
+		err := userModel.Insert(&userToDelete)
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
+		}
+
+		passwordToken, salt, err := token.GenerateTokenAndSalt(32, 16)
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
+		}
+
+		hashedToken := token.HashToken(passwordToken, salt)
+		err = userModel.EnterPasswordHash(userToDelete.Email, string(hashedToken), string(salt))
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
+		}
+		user, err := userModel.GetByEmail(userToDelete.Email)
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
+		}
+		t.Log(user)
+		if user.PasswordResetHashToken != hashedToken {
+			t.Errorf("got %s, want %s", user.PasswordResetHashToken, hashedToken)
+		}
+		if user.PasswordResetSalt != string(salt) {
+			t.Errorf("got %s, want %s", user.PasswordResetSalt, salt)
+		}
+		err = userModel.DeleteUser(userToDelete.Email)
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
+		}
+	})
 }
