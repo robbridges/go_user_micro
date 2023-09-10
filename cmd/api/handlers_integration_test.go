@@ -447,6 +447,10 @@ func TestApp_AuthenticateIntegration(t *testing.T) {
 		if string(body) != want {
 			t.Errorf("Expected body %s, but got %s", want, string(body))
 		}
+		err = app.userModel.DeleteUser(user.Email)
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
+		}
 	})
 	t.Run("Authenticate Invalid payload", func(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(app.Authenticate))
