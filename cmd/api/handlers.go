@@ -123,6 +123,8 @@ func (app *App) updateUserPassword(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	// need to get the user again to make sure the password updated
+	user, err = app.userModel.GetByEmail(payload.Email)
 	app.writeJSON(w, 200, &user)
 }
 
