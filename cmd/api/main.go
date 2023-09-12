@@ -8,7 +8,7 @@ import (
 )
 
 // I did my best to get away with no env variables in a mock service, but I can't expose my SMTP credentials. You win this round, env variables.
-func init() {
+func setViper() {
 	viper.SetConfigFile("email.env")
 	viper.AddConfigPath("./")
 	viper.AutomaticEnv()
@@ -28,7 +28,7 @@ const (
 )
 
 func main() {
-
+	setViper()
 	app := App{}
 	err := app.Serve()
 	if err != nil {
