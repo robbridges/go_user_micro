@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 	"the_lonely_road/data"
+	"the_lonely_road/mailer"
 	"the_lonely_road/models"
 	"time"
 )
@@ -58,9 +59,12 @@ func (app *App) Serve() error {
 	fmt.Println("Connected to database")
 
 	defer db.Close()
+	mailCfg := mailer.DefaultSMTPConfig()
+	mailer := mailer.NewEmailService(mailCfg)
 	app.userModel = &models.UserModel{
 		DB: db,
 	}
+	app.emailer = mailer
 	fmt.Println("Server running on port 8080")
 	err = svr.ListenAndServe()
 	if err != nil {

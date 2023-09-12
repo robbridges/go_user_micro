@@ -40,12 +40,12 @@ func DefaultSMTPConfig() SMTPConfig {
 	}
 }
 
-func NewEmailService(config SMTPConfig) *EmailService {
+func NewEmailService(config SMTPConfig) EmailService {
 	es := EmailService{
 		Dialer: mail.NewDialer(config.Host, config.Port, config.Username, config.Password),
 	}
 
-	return &es
+	return es
 }
 
 func (es *EmailService) SendEmail(email Email) error {

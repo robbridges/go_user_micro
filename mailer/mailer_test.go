@@ -2,6 +2,7 @@ package mailer
 
 import (
 	"github.com/go-mail/mail/v2"
+	"github.com/spf13/viper"
 	"reflect"
 	"strings"
 	"testing"
@@ -18,6 +19,26 @@ func TestNewEmailService(t *testing.T) {
 	es := NewEmailService(mockConfig)
 	if es.Dialer == nil {
 		t.Errorf("Dialer should not be nil")
+	}
+}
+
+func TestDefaultSMTPConfig(t *testing.T) {
+	viper.SetConfigFile("../email.env")
+	if err := viper.ReadInConfig(); err != nil {
+		t.Fatalf("failed to read config file: %v", err)
+	}
+
+	expectedConfig := SMTPConfig{
+		Host:     viper.GetString("EMAIL_HOST"),
+		Port:     viper.GetInt("EMAIL_PORT"),
+		Username: viper.GetString("EMAIL_USERNAME"),
+		Password: viper.GetString("EMAIL_PASSWORD"),
+	}
+
+	actualConfig := DefaultSMTPConfig()
+
+	if !reflect.DeepEqual(expectedConfig, actualConfig) {
+		t.Errorf("Expected config to be %v, but got %v", expectedConfig, actualConfig)
 	}
 }
 
@@ -79,5 +100,34 @@ func TestSetFrom(t *testing.T) {
 				t.Errorf("Expected From header to be one of %v, but got %s", test.expectedResults, fromStr)
 			}
 		})
+	}
+}
+
+func TestSendEmail(t *testing.T) {
+	viper.SetConfigFile("../email.env")
+	if err := viper.ReadInConfig(); err != nil {
+		t.Fatalf("failed to read config file: %v", err)
+	}
+
+	cfg := SMTPConfig{
+		Host:     viper.GetString("EMAIL_HOST"),
+		Port:     viper.GetInt("EMAIL_PORT"),
+		Username: viper.GetString("EMAIL_USERNAME"),
+		Password: viper.GetString("EMAIL_PASSWORD"),
+	}
+
+	emailService := NewEmailService(cfg)
+
+	testEmail := Email{
+		To:        "admin@gallery.com",
+		Subject:   "Test Email",
+		Plaintext: "This is the plaintext content",
+		HTML:      "<p>This is the HTML content</p>",
+	}
+
+	err := emailService.SendEmail(testEmail)
+
+	if err != nil {
+		t.Fatalf("Error sending email: %v", err)
 	}
 }
