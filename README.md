@@ -6,6 +6,8 @@ authentication and whatever extra bells and whistles I can think of.
 This service only implements stateless auth, and should not be used where more granular control is needed. Anyone and 
 everyone is free to use this service if they would like, it is well tested and functioning as intended. 
 
+I did my best to not rely on an env so any repo can plug and play this, but you will need to make email.env file and fill in your own smtp server info.
+
 ## TODO
 - [x] Implement basic auth
 - [x] Implement basic user creation
@@ -19,6 +21,8 @@ everyone is free to use this service if they would like, it is well tested and f
 - [x] Implement Postgres test database
 - [x] Implement Migrations
 - [x] Implement Graceful shutdown
+- [x] Implement email service
+- [x] env variable management
 - [] Sending email as password reset
 - [] Implement CORS
 - [] General cleanup - tests are very verbose and repetitive, I'm okay with that as they're also to document how to use the 
