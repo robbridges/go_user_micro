@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/spf13/viper"
 	"sync"
+	"the_lonely_road/mailer"
 	"the_lonely_road/models"
 )
 
@@ -20,6 +21,7 @@ func setViper() {
 
 type App struct {
 	userModel models.IUserModel
+	emailer   mailer.EmailService
 	wg        sync.WaitGroup
 }
 
@@ -28,6 +30,7 @@ const (
 )
 
 func main() {
+	// we use viper to read in our env variables
 	setViper()
 	app := App{}
 	err := app.Serve()
