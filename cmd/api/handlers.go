@@ -5,6 +5,7 @@ import (
 	"the_lonely_road/JWT"
 	"the_lonely_road/errors"
 	"the_lonely_road/models"
+	"the_lonely_road/token"
 	"the_lonely_road/validator"
 	"time"
 )
@@ -117,15 +118,24 @@ func (app *App) updateUserPassword(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-
-	err = app.userModel.UpdatePassword(int(user.ID), user.Password)
+	passwordToken, salt, err := token.GenerateTokenAndSalt(32, 16)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	// need to get the user again to make sure the password updated
-	user, err = app.userModel.GetByEmail(payload.Email)
-	app.writeJSON(w, 200, &user)
+	hashedToken := token.HashToken(passwordToken, salt)
+	err = app.userModel.EnterPasswordHash(user.Email, hashedToken, salt)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	// send email with token
+	err = app.emailer.ForgotPassword(user.Email, passwordToken)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	app.writeJSON(w, 200, "Password reset email sent, please check your inbox")
 }
 
 func (app *App) Authenticate(w http.ResponseWriter, r *http.Request) {
