@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/spf13/viper"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -10,6 +11,7 @@ import (
 	"strings"
 	"testing"
 	"the_lonely_road/data"
+	"the_lonely_road/errors"
 	"the_lonely_road/mailer"
 	"the_lonely_road/models"
 	"time"
@@ -271,6 +273,10 @@ func TestApp_GetUserIntegration(t *testing.T) {
 }
 
 func Test_UpdatePasswordIntegration(t *testing.T) {
+	viper.SetConfigFile("../../email.env")
+	if err := viper.ReadInConfig(); err != nil {
+		t.Fatalf("failed to read config file: %v", err)
+	}
 	testCfg := data.TestPostgresConfig()
 	testDB, err := data.Open(testCfg)
 	defer testDB.Close()
@@ -280,44 +286,44 @@ func Test_UpdatePasswordIntegration(t *testing.T) {
 	mailCfg := mailer.DefaultSMTPConfig()
 	mailClient := mailer.NewEmailService(mailCfg)
 	app := App{userModel: &models.UserModel{DB: testDB}, emailer: mailClient}
-	//t.Run("Update password Happy path", func(t *testing.T) {
-	//	server := httptest.NewServer(http.HandlerFunc(app.updateUserPassword))
-	//	defer server.Close()
-	//	var emailPayload = []byte(`{"email": "admin@localhost", "password": "secureadminpassword"}`)
-	//	req, err := http.NewRequest("PATCH", server.URL+"/users)", bytes.NewBuffer(emailPayload))
-	//	if err != nil {
-	//		t.Errorf("Unexpected error in get request to %s", req.URL)
-	//	}
-	//
-	//	resp, err := http.DefaultClient.Do(req)
-	//	if err != nil {
-	//		t.Fatal(err)
-	//	}
-	//	defer resp.Body.Close()
-	//	if resp.StatusCode != http.StatusOK {
-	//		t.Errorf("Expected status %d, but got %d", http.StatusOK, resp.StatusCode)
-	//	}
-	//	if err != nil {
-	//		t.Errorf("Unexpected error reading response body: %v", err)
-	//	}
-	//	if resp.StatusCode != http.StatusOK {
-	//		t.Errorf("Expected status %d, but got %d", http.StatusOK, resp.StatusCode)
-	//	}
-	//	var userReturned models.User
-	//	err = json.NewDecoder(resp.Body).Decode(&userReturned)
-	//	if err != nil {
-	//		t.Errorf("Error unmarshaling JSON: %v", err)
-	//	}
-	//
-	//	updatedUser, err := app.userModel.GetByEmail(userReturned.Email)
-	//	if err != nil {
-	//		t.Error("Unexpected error in database user retrieval", req.URL)
-	//	}
-	//
-	//	if reflect.DeepEqual(userReturned, updatedUser) {
-	//		t.Errorf("Expected user %v, but got %v", updatedUser, userReturned)
-	//	}
-	//})
+	t.Run("Update password Happy path", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(app.updateUserPassword))
+		defer server.Close()
+		var emailPayload = []byte(`{"email": "admin@localhost", "password": "secureadminpassword"}`)
+		req, err := http.NewRequest("PATCH", server.URL+"/users)", bytes.NewBuffer(emailPayload))
+		if err != nil {
+			t.Errorf("Unexpected error in get request to %s", req.URL)
+		}
+
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			t.Errorf("Expected status %d, but got %d", http.StatusOK, resp.StatusCode)
+		}
+		user, err := app.userModel.GetByEmail("admin@localhost")
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
+		}
+		if user.PasswordResetHashToken == "" || user.PasswordResetSalt == "" {
+			t.Errorf("Expected salt and hash to be set")
+		}
+
+		if err != nil {
+			t.Errorf("Unexpected error reading response body: %v", err)
+		}
+		response, err := io.ReadAll(resp.Body)
+		if err != nil {
+			t.Errorf("Unexpected error reading response body: %v", err)
+		}
+
+		want := errors.PasswordResetEmail
+		if !strings.Contains(string(response), want) {
+			t.Errorf("Expected body %s, but got %s", want, string(response))
+		}
+	})
 	t.Run("Update password Sad path", func(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(app.updateUserPassword))
 		defer server.Close()

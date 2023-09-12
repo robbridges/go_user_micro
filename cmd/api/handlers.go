@@ -135,7 +135,7 @@ func (app *App) updateUserPassword(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	app.writeJSON(w, 200, "Password reset email sent, please check your inbox")
+	app.writeJSON(w, 200, errors.PasswordResetEmail)
 }
 
 func (app *App) Authenticate(w http.ResponseWriter, r *http.Request) {

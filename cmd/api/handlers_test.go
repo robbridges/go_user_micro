@@ -298,7 +298,6 @@ func TestApp_updateUserPassword(t *testing.T) {
 	}
 	mockModel.DB = append(mockModel.DB, &user)
 	//t.Run("Happy Path", func(t *testing.T) {
-	//	userAtBeginning := mockModel.DB[0]
 	//
 	//	payload = []byte(`{"email": "test@example.com", "password": "moresecurepassword"}`)
 	//	req, err := http.NewRequest("PATCH", "/users", bytes.NewBuffer(payload))
@@ -309,20 +308,32 @@ func TestApp_updateUserPassword(t *testing.T) {
 	//
 	//	app.updateUserPassword(rr, req)
 	//
-	//	var secondResponseUser models.User
-	//	err = json.Unmarshal(rr.Body.Bytes(), &secondResponseUser)
+	//	var resp string
+	//	err = json.Unmarshal(rr.Body.Bytes(), &resp)
 	//	if err != nil {
 	//		t.Errorf("Error unmarshaling JSON: %v", err)
 	//	}
+	//	t.Log(resp)
 	//
 	//	if rr.Code != http.StatusOK {
 	//		t.Errorf("Expected status code %d, got %d", http.StatusOK, rr.Code)
 	//	}
-	//	if reflect.DeepEqual(userAtBeginning, secondResponseUser) {
-	//		t.Errorf("Expected user to be updated but got %v and %v", userAtBeginning, secondResponseUser)
+	//	user, err := app.userModel.GetByEmail("test@example.com")
+	//	if err != nil {
+	//		t.Errorf("Expected no error, got %s", err)
+	//	}
+	//	if user.PasswordResetHashToken == "" || user.PasswordResetSalt == "" {
+	//		t.Errorf("Expected salt and hash to be set")
 	//	}
 	//
-	//	app.checkMockDBSize(t, 1)
+	//	if err != nil {
+	//		t.Errorf("Unexpected error reading response body: %v", err)
+	//	}
+	//
+	//	want := errors.PasswordResetEmail
+	//	if !strings.Contains(resp, want) {
+	//		t.Errorf("Expected body %s, but got %s", want, resp)
+	//	}
 	//})
 	t.Run("Bad json", func(t *testing.T) {
 
