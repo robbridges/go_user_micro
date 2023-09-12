@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 	"the_lonely_road/data"
+	"the_lonely_road/mailer"
 	"the_lonely_road/models"
 	"time"
 )
@@ -269,106 +270,108 @@ func TestApp_GetUserIntegration(t *testing.T) {
 	})
 }
 
-//func Test_UpdatePasswordIntegration(t *testing.T) {
-//	testCfg := data.TestPostgresConfig()
-//	testDB, err := data.Open(testCfg)
-//	defer testDB.Close()
-//	if err != nil {
-//		t.Errorf("Expected database to open, but got %s", err)
-//	}
-//	app := App{userModel: &models.UserModel{DB: testDB}}
-//	t.Run("Update password Happy path", func(t *testing.T) {
-//		server := httptest.NewServer(http.HandlerFunc(app.updateUserPassword))
-//		defer server.Close()
-//		var emailPayload = []byte(`{"email": "admin@localhost", "password": "secureadminpassword"}`)
-//		req, err := http.NewRequest("PATCH", server.URL+"/users)", bytes.NewBuffer(emailPayload))
-//		if err != nil {
-//			t.Errorf("Unexpected error in get request to %s", req.URL)
-//		}
-//
-//		resp, err := http.DefaultClient.Do(req)
-//		if err != nil {
-//			t.Fatal(err)
-//		}
-//		defer resp.Body.Close()
-//		if resp.StatusCode != http.StatusOK {
-//			t.Errorf("Expected status %d, but got %d", http.StatusOK, resp.StatusCode)
-//		}
-//		if err != nil {
-//			t.Errorf("Unexpected error reading response body: %v", err)
-//		}
-//		if resp.StatusCode != http.StatusOK {
-//			t.Errorf("Expected status %d, but got %d", http.StatusOK, resp.StatusCode)
-//		}
-//		var userReturned models.User
-//		err = json.NewDecoder(resp.Body).Decode(&userReturned)
-//		if err != nil {
-//			t.Errorf("Error unmarshaling JSON: %v", err)
-//		}
-//
-//		updatedUser, err := app.userModel.GetByEmail(userReturned.Email)
-//		if err != nil {
-//			t.Error("Unexpected error in database user retrieval", req.URL)
-//		}
-//
-//		if reflect.DeepEqual(userReturned, updatedUser) {
-//			t.Errorf("Expected user %v, but got %v", updatedUser, userReturned)
-//		}
-//	})
-//	t.Run("Update password Sad path", func(t *testing.T) {
-//		server := httptest.NewServer(http.HandlerFunc(app.updateUserPassword))
-//		defer server.Close()
-//		emailPayload := []byte(`{"email": "adminx@localhost", "password": "secureadminpassword"}`)
-//		req, err := http.NewRequest("PATCH", server.URL+"/users)", bytes.NewBuffer(emailPayload))
-//		if err != nil {
-//			t.Errorf("Unexpected error in get request to %s", req.URL)
-//		}
-//
-//		resp, err := http.DefaultClient.Do(req)
-//		if err != nil {
-//			t.Fatal(err)
-//		}
-//		defer resp.Body.Close()
-//		if resp.StatusCode != http.StatusBadRequest {
-//			t.Errorf("Expected status %d, but got %d", http.StatusBadRequest, resp.StatusCode)
-//		}
-//		body, err := io.ReadAll(resp.Body)
-//		if err != nil {
-//			t.Errorf("Unexpected error reading response body: %v", err)
-//		}
-//
-//		expectedBody := "record not found\n"
-//
-//		if string(body) != expectedBody {
-//			t.Errorf("Expected body %s, but got %s", expectedBody, string(body))
-//		}
-//	})
-//	t.Run("Update password Invalid password payload", func(t *testing.T) {
-//		server := httptest.NewServer(http.HandlerFunc(app.updateUserPassword))
-//		defer server.Close()
-//
-//		req, err := http.NewRequest("PATCH", server.URL+"/users", bytes.NewBuffer(badPasswordGoodEmailPayload))
-//		if err != nil {
-//			t.Errorf("Unexpected error in get request to %s", req.URL)
-//		}
-//		resp, err := http.DefaultClient.Do(req)
-//		if err != nil {
-//			t.Fatal(err)
-//		}
-//		defer resp.Body.Close()
-//		if resp.StatusCode != http.StatusBadRequest {
-//			t.Errorf("Expected status %d, but got %d", http.StatusBadRequest, resp.StatusCode)
-//		}
-//		body, err := io.ReadAll(resp.Body)
-//		if err != nil {
-//			t.Errorf("Unexpected error reading response body: %v", err)
-//		}
-//
-//		if string(body) != "user password must be greater than 4 characters and less than 72\n" {
-//			t.Errorf("Expected body %s, but got %s", "invalid user\n", string(body))
-//		}
-//	})
-//}
+func Test_UpdatePasswordIntegration(t *testing.T) {
+	testCfg := data.TestPostgresConfig()
+	testDB, err := data.Open(testCfg)
+	defer testDB.Close()
+	if err != nil {
+		t.Errorf("Expected database to open, but got %s", err)
+	}
+	mailCfg := mailer.DefaultSMTPConfig()
+	mailClient := mailer.NewEmailService(mailCfg)
+	app := App{userModel: &models.UserModel{DB: testDB}, emailer: mailClient}
+	//t.Run("Update password Happy path", func(t *testing.T) {
+	//	server := httptest.NewServer(http.HandlerFunc(app.updateUserPassword))
+	//	defer server.Close()
+	//	var emailPayload = []byte(`{"email": "admin@localhost", "password": "secureadminpassword"}`)
+	//	req, err := http.NewRequest("PATCH", server.URL+"/users)", bytes.NewBuffer(emailPayload))
+	//	if err != nil {
+	//		t.Errorf("Unexpected error in get request to %s", req.URL)
+	//	}
+	//
+	//	resp, err := http.DefaultClient.Do(req)
+	//	if err != nil {
+	//		t.Fatal(err)
+	//	}
+	//	defer resp.Body.Close()
+	//	if resp.StatusCode != http.StatusOK {
+	//		t.Errorf("Expected status %d, but got %d", http.StatusOK, resp.StatusCode)
+	//	}
+	//	if err != nil {
+	//		t.Errorf("Unexpected error reading response body: %v", err)
+	//	}
+	//	if resp.StatusCode != http.StatusOK {
+	//		t.Errorf("Expected status %d, but got %d", http.StatusOK, resp.StatusCode)
+	//	}
+	//	var userReturned models.User
+	//	err = json.NewDecoder(resp.Body).Decode(&userReturned)
+	//	if err != nil {
+	//		t.Errorf("Error unmarshaling JSON: %v", err)
+	//	}
+	//
+	//	updatedUser, err := app.userModel.GetByEmail(userReturned.Email)
+	//	if err != nil {
+	//		t.Error("Unexpected error in database user retrieval", req.URL)
+	//	}
+	//
+	//	if reflect.DeepEqual(userReturned, updatedUser) {
+	//		t.Errorf("Expected user %v, but got %v", updatedUser, userReturned)
+	//	}
+	//})
+	t.Run("Update password Sad path", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(app.updateUserPassword))
+		defer server.Close()
+		emailPayload := []byte(`{"email": "adminx@localhost", "password": "secureadminpassword"}`)
+		req, err := http.NewRequest("PATCH", server.URL+"/users)", bytes.NewBuffer(emailPayload))
+		if err != nil {
+			t.Errorf("Unexpected error in get request to %s", req.URL)
+		}
+
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Errorf("Expected status %d, but got %d", http.StatusBadRequest, resp.StatusCode)
+		}
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			t.Errorf("Unexpected error reading response body: %v", err)
+		}
+
+		expectedBody := "record not found\n"
+
+		if string(body) != expectedBody {
+			t.Errorf("Expected body %s, but got %s", expectedBody, string(body))
+		}
+	})
+	t.Run("Update password Invalid password payload", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(app.updateUserPassword))
+		defer server.Close()
+
+		req, err := http.NewRequest("PATCH", server.URL+"/users", bytes.NewBuffer(badPasswordGoodEmailPayload))
+		if err != nil {
+			t.Errorf("Unexpected error in get request to %s", req.URL)
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Errorf("Expected status %d, but got %d", http.StatusBadRequest, resp.StatusCode)
+		}
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			t.Errorf("Unexpected error reading response body: %v", err)
+		}
+
+		if string(body) != "user password must be greater than 4 characters and less than 72\n" {
+			t.Errorf("Expected body %s, but got %s", "invalid user\n", string(body))
+		}
+	})
+}
 
 func TestApp_AuthenticateIntegration(t *testing.T) {
 	testCfg := data.TestPostgresConfig()
