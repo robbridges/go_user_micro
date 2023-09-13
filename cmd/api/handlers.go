@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"the_lonely_road/JWT"
 	"the_lonely_road/errors"
@@ -129,12 +130,49 @@ func (app *App) updateUserPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// send email with token
-	err = app.emailer.ForgotPassword(user.Email, passwordToken)
+	err = app.emailer.ForgotPassword(user.Email, fmt.Sprintf("localhost:8080/users/password/reset?token=%s", passwordToken))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	app.writeJSON(w, 200, errors.PasswordResetEmail)
+}
+
+func (app *App) ProcessPasswordReset(w http.ResponseWriter, r *http.Request) {
+	var payload struct {
+		Email    string
+		Password string
+	}
+	passwordToken := r.URL.Query().Get("token")
+	err := app.readJSON(w, r, &payload)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	user, err := app.userModel.GetByEmail(payload.Email)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	ok := token.IsValidToken(passwordToken, user.PasswordResetHashToken, user.PasswordResetSalt)
+	if !ok {
+		http.Error(w, errors.InvalidToken, http.StatusBadRequest)
+		return
+	}
+
+	if !user.PasswordResetExpiry.Before(time.Now()) {
+		http.Error(w, errors.PasswordResetExpired, http.StatusBadRequest)
+		return
+	}
+	err = app.userModel.UpdatePassword(int(user.ID), payload.Password)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	//TODO I should clear the current hashedToken, salt and expiry
+	app.writeJSON(w, 200, "Password updated successfully")
+
 }
 
 func (app *App) Authenticate(w http.ResponseWriter, r *http.Request) {
