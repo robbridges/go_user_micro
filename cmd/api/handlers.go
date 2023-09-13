@@ -98,8 +98,7 @@ func (app *App) getUserByEmail(w http.ResponseWriter, r *http.Request) {
 func (app *App) updateUserPassword(w http.ResponseWriter, r *http.Request) {
 
 	var payload struct {
-		Email    string
-		Password string
+		Email string
 	}
 	v := validator.New()
 
@@ -108,8 +107,8 @@ func (app *App) updateUserPassword(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	if models.ValidatePasswordPlaintext(v, payload.Password); !v.Valid() {
-		v.AddError("message", errors.InvalidPassword)
+	if models.ValidateEmail(v, payload.Email); !v.Valid() {
+		v.AddError("message", errors.InvalidUser)
 		http.Error(w, v.Errors["message"], http.StatusBadRequest)
 		return
 	}
