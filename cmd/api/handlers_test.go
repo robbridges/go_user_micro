@@ -315,7 +315,6 @@ func TestApp_updateUserPassword(t *testing.T) {
 		if err != nil {
 			t.Errorf("Error unmarshaling JSON: %v", err)
 		}
-		t.Log(resp)
 
 		if rr.Code != http.StatusOK {
 			t.Errorf("Expected status code %d, got %d", http.StatusOK, rr.Code)
@@ -323,6 +322,9 @@ func TestApp_updateUserPassword(t *testing.T) {
 
 		if err != nil {
 			t.Errorf("Unexpected error reading response body: %v", err)
+		}
+		if user.PasswordResetSalt == "" || user.PasswordResetHashToken == "" {
+			t.Errorf("Expected user password salts and hash to be set")
 		}
 
 		want := errors.PasswordResetEmail

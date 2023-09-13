@@ -262,6 +262,13 @@ func (mockUM *UserModelMock) Authenticate(email, password string) (*User, error)
 }
 
 func (mockUM *UserModelMock) EnterPasswordHash(email, passwordHash, salt string) error {
+	user, err := mockUM.GetByEmail(email)
+	if err != nil {
+		return err
+	}
+	user.PasswordResetExpiry = time.Now().Add(30 * time.Minute)
+	user.PasswordResetHashToken = passwordHash
+	user.PasswordResetSalt = salt
 	return nil
 }
 
