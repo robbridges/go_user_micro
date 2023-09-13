@@ -352,6 +352,31 @@ func Test_UpdatePasswordIntegration(t *testing.T) {
 			t.Errorf("Expected body %s, but got %s", expectedBody, string(body))
 		}
 	})
+	t.Run("Update password Invalid email payload", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(app.updateUserPassword))
+		defer server.Close()
+
+		req, err := http.NewRequest("PATCH", server.URL+"/users", bytes.NewBuffer(emailOnlyBadPayload))
+		if err != nil {
+			t.Errorf("Unexpected error in get request to %s", req.URL)
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Errorf("Expected status %d, but got %d", http.StatusBadRequest, resp.StatusCode)
+		}
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			t.Errorf("Unexpected error reading response body: %v", err)
+		}
+
+		if string(body) != "User password must be 4 characters long and email must be 5 characters long\n" {
+			t.Errorf("Expected body %s, but got %s", "invalid user\n", string(body))
+		}
+	})
 }
 
 func TestApp_AuthenticateIntegration(t *testing.T) {
