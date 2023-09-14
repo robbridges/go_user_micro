@@ -306,3 +306,58 @@ func TestUserModel_EnterPasswordHash(t *testing.T) {
 		}
 	})
 }
+
+func TestUserModel_ConsumePasswordReset(t *testing.T) {
+	cfg := data.TestPostgresConfig()
+	db, err := data.Open(cfg)
+	if err != nil {
+		t.Errorf("Expected no error, got %s", err)
+	}
+	defer db.Close()
+	userModel := &UserModel{DB: db}
+	t.Run("Happy path", func(t *testing.T) {
+		userToDelete := User{
+			Email:    "deleteuser@localhost",
+			Password: "veryinsecurepassword",
+		}
+		err := userModel.Insert(&userToDelete)
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
+		}
+
+		passwordToken, salt, err := token.GenerateTokenAndSalt(32, 16)
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
+		}
+
+		hashedToken := token.HashToken(passwordToken, salt)
+		err = userModel.EnterPasswordHash(userToDelete.Email, string(hashedToken), string(salt))
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
+		}
+		err = userModel.ConsumePasswordReset(userToDelete.Email)
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
+		}
+		user, err := userModel.GetByEmail(userToDelete.Email)
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
+		}
+		if !user.PasswordResetExpiry.IsZero() {
+			t.Errorf("Expected PasswordResetExpiry to be unset, got %s", user.PasswordResetExpiry)
+		}
+		if user.PasswordResetHashToken != "" || user.PasswordResetSalt != "" {
+			t.Errorf("Expected PasswordResetToken and PasswordResetSalt to be unset, got %s and %s", user.PasswordResetHashToken, user.PasswordResetSalt)
+		}
+		err = userModel.DeleteUser(userToDelete.Email)
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
+		}
+	})
+	t.Run("User not found", func(t *testing.T) {
+		err = userModel.ConsumePasswordReset("notfound")
+		if err == nil {
+			t.Errorf("Expected error, got nil")
+		}
+	})
+}
