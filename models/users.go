@@ -18,6 +18,7 @@ type IUserModel interface {
 	DeleteUser(userEmail string) error
 	Authenticate(email, password string) (*User, error)
 	EnterPasswordHash(email, passwordHash, salt string) error
+	ConsumePasswordReset(email string) error
 }
 
 type User struct {
@@ -156,6 +157,28 @@ func (m *UserModel) EnterPasswordHash(email, passwordHash, salt string) error {
 	return nil
 }
 
+// ConsumePasswordReset after resetting user password we should consume the token for security reasons
+func (m *UserModel) ConsumePasswordReset(email string) error {
+	query := `UPDATE users
+	SET password_reset_expires = $1,
+		password_reset_token = $2,
+		password_reset_salt = $3
+	WHERE email = $4
+	RETURNING password_reset_expires, password_reset_token, password_reset_salt;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	result, err := m.DB.ExecContext(ctx, query, time.Time{}, "", "", email)
+	if err != nil {
+		return err
+	}
+	rowsAffected, err := result.RowsAffected()
+	if rowsAffected == 0 {
+		return errors.New("user not found")
+	}
+	return nil
+}
+
 func (m *UserModel) Authenticate(email, password string) (*User, error) {
 	email = strings.ToLower(email)
 	user := User{
@@ -269,6 +292,17 @@ func (mockUM *UserModelMock) EnterPasswordHash(email, passwordHash, salt string)
 	user.PasswordResetExpiry = time.Now().Add(30 * time.Minute)
 	user.PasswordResetHashToken = passwordHash
 	user.PasswordResetSalt = salt
+	return nil
+}
+
+func (mockUM *UserModelMock) ConsumePasswordReset(email string) error {
+	user, err := mockUM.GetByEmail(email)
+	if err != nil {
+		return err
+	}
+	user.PasswordResetExpiry = time.Time{}
+	user.PasswordResetHashToken = ""
+	user.PasswordResetSalt = ""
 	return nil
 }
 
