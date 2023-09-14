@@ -199,6 +199,58 @@ func TestUserModelMock_EnterPasswordHash(t *testing.T) {
 			t.Errorf("Expected PasswordResetToken and PasswordResetSalt to be set, got %s and %s", mockUser.PasswordResetHashToken, mockUser.PasswordResetSalt)
 		}
 	})
+	t.Run("User not found", func(t *testing.T) {
+		err = userModel.EnterPasswordHash("notfound", "notfound", "notfound")
+		if err == nil && err.Error() != "user not found" {
+			t.Errorf("Expected error, got %s", err)
+		}
+	})
+}
+func TestUserModelMock_ConsumePasswordReset(t *testing.T) {
+	mockUser := User{
+		ID:        3,
+		Email:     "test@example.com",
+		Password:  "mockpassword",
+		CreatedAt: time.Now(),
+	}
+	userModel := UserModelMock{}
+	err := userModel.Insert(&mockUser)
+	if err != nil {
+		t.Errorf("Expected no error, got %s", err)
+	}
+	t.Run("Happy path", func(t *testing.T) {
+		passwordHash, salt, err := token.GenerateTokenAndSalt(32, 16)
+		if err != nil {
+			t.Fatal(err)
+		}
+		token.HashToken(passwordHash, salt)
+		err = userModel.EnterPasswordHash(mockUser.Email, passwordHash, salt)
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
+		}
+		if mockUser.PasswordResetExpiry.IsZero() {
+			t.Errorf("Expected PasswordResetExpiry to be set, got %s", mockUser.PasswordResetExpiry)
+		}
+		if mockUser.PasswordResetHashToken == "" || mockUser.PasswordResetSalt == "" {
+			t.Errorf("Expected PasswordResetToken and PasswordResetSalt to be set, got %s and %s", mockUser.PasswordResetHashToken, mockUser.PasswordResetSalt)
+		}
+		err = userModel.ConsumePasswordReset(mockUser.Email)
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
+		}
+		if !mockUser.PasswordResetExpiry.IsZero() {
+			t.Errorf("Expected PasswordResetExpiry to be unset, got %s", mockUser.PasswordResetExpiry)
+		}
+		if mockUser.PasswordResetHashToken != "" || mockUser.PasswordResetSalt != "" {
+			t.Errorf("Expected PasswordResetToken and PasswordResetSalt to be unset, got %s and %s", mockUser.PasswordResetHashToken, mockUser.PasswordResetSalt)
+		}
+	})
+	t.Run("User not found", func(t *testing.T) {
+		err = userModel.ConsumePasswordReset("notfound")
+		if err == nil && err.Error() != "user not found" {
+			t.Errorf("Expected error, got %s", err)
+		}
+	})
 }
 
 func TestValidateEmail(t *testing.T) {
