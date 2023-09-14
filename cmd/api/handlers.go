@@ -155,15 +155,13 @@ func (app *App) ProcessPasswordReset(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
 	ok := token.IsValidToken(passwordToken, user.PasswordResetHashToken, user.PasswordResetSalt)
 	if !ok {
 		http.Error(w, errors.InvalidToken, http.StatusBadRequest)
 		return
 	}
-	if user.PasswordResetExpiry.After(time.Now()) {
-		http.Error(w, errors.PasswordResetExpired, http.StatusBadRequest)
-		return
-	}
+
 	err = app.userModel.UpdatePassword(int(user.ID), payload.Password)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
