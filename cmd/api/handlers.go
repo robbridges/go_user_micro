@@ -160,7 +160,7 @@ func (app *App) ProcessPasswordReset(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, errors.InvalidToken, http.StatusBadRequest)
 		return
 	}
-	if !user.PasswordResetExpiry.Before(time.Now()) {
+	if user.PasswordResetExpiry.Before(time.Now()) {
 		http.Error(w, errors.PasswordResetExpired, http.StatusBadRequest)
 		return
 	}

@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/spf13/viper"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -11,6 +12,7 @@ import (
 	"the_lonely_road/errors"
 	"the_lonely_road/mailer"
 	"the_lonely_road/models"
+	"the_lonely_road/token"
 	"the_lonely_road/validator"
 	"time"
 )
@@ -283,6 +285,10 @@ func TestApp_getUserByEmail(t *testing.T) {
 }
 
 func TestApp_updateUserPassword(t *testing.T) {
+	viper.SetConfigFile("../../email.env")
+	if err := viper.ReadInConfig(); err != nil {
+		t.Fatalf("failed to read config file: %v", err)
+	}
 	emailCfg := mailer.DefaultSMTPConfig()
 	mailClient := mailer.NewEmailService(emailCfg)
 
@@ -301,8 +307,8 @@ func TestApp_updateUserPassword(t *testing.T) {
 	mockModel.DB = append(mockModel.DB, &user)
 	t.Run("Happy Path", func(t *testing.T) {
 
-		payload = []byte(`{"email": "test@example.com"}`)
-		req, err := http.NewRequest("PATCH", "/users", bytes.NewBuffer(payload))
+		emailPayload := []byte(`{"email": "test@example.com"}`)
+		req, err := http.NewRequest("PATCH", "/users", bytes.NewBuffer(emailPayload))
 		if err != nil {
 			t.Errorf("Unexpected error in get request to /users")
 		}
@@ -387,6 +393,156 @@ func TestApp_updateUserPassword(t *testing.T) {
 
 }
 
+func TestApp_ProcessPasswordReset(t *testing.T) {
+
+	app := App{userModel: &models.UserModelMock{DB: []*models.User{}}}
+	user := models.User{
+		ID:        1,
+		Password:  "secret",
+		Email:     "test@example.com",
+		CreatedAt: time.Now(),
+	}
+
+	mockModel, ok := app.userModel.(*models.UserModelMock)
+	if !ok {
+		t.Errorf("Expected app.userModel to be of type UserModelMock")
+	}
+	mockModel.DB = append(mockModel.DB, &user)
+	t.Run("Happy Path", func(t *testing.T) {
+		user, err := mockModel.GetByEmail(user.Email)
+		if err != nil {
+			t.Errorf("Unexpected error in get request to /users")
+		}
+
+		passwordToken, salt, err := token.GenerateTokenAndSalt(32, 16)
+		if err != nil {
+			t.Errorf("Unexpected error in get request to /users")
+		}
+		hashedToken := token.HashToken(passwordToken, salt)
+		err = mockModel.EnterPasswordHash(user.Email, hashedToken, salt)
+		if err != nil {
+			t.Errorf("Unexpected error in get request to /users")
+		}
+		testPayload := []byte(`{"email": "test@example.com", "password": "securepassword"}`)
+		req, err := http.NewRequest("POST", "/users/password/reset?token="+passwordToken, bytes.NewBuffer(testPayload))
+		if err != nil {
+			t.Errorf("Unexpected error in get request to /users")
+		}
+		rr := httptest.NewRecorder()
+		app.ProcessPasswordReset(rr, req)
+
+		if rr.Code != http.StatusOK {
+			t.Errorf("Expected status code %d, got %d", http.StatusOK, rr.Code)
+		}
+		want := rr.Body.String()
+		if !strings.Contains(want, "Password updated successfully") {
+			t.Errorf("Expected body %s, but got %s", "password updated successfully", rr.Body.String())
+		}
+	})
+	t.Run("Bad json", func(t *testing.T) {
+		passwordToken, _, err := token.GenerateTokenAndSalt(32, 16)
+		if err != nil {
+			t.Errorf("Unexpected error in get request to /users")
+		}
+
+		rr := httptest.NewRecorder()
+		req, err := http.NewRequest("POST", "/users/password/reset?token="+passwordToken, bytes.NewBuffer(badPayload))
+		if err != nil {
+			t.Errorf("Unexpected error in patch request to /users")
+		}
+		app.ProcessPasswordReset(rr, req)
+		if rr.Code != http.StatusBadRequest {
+			t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, rr.Code)
+		}
+		got := rr.Body.String()
+		if !strings.Contains(got, "body contains bady-form JSON") {
+			t.Errorf("Expected body %s, but got %s", "body contains bady-form JSON", rr.Body.String())
+		}
+	})
+	t.Run("User not found", func(t *testing.T) {
+		passwordToken, _, err := token.GenerateTokenAndSalt(32, 16)
+		if err != nil {
+			t.Errorf("Unexpected error in hashing token")
+		}
+		rr := httptest.NewRecorder()
+		payload = []byte(`{"email": "notfound", "password": "securepassword"}`)
+		req, err := http.NewRequest("POST", "/users/password/reset?token="+passwordToken, bytes.NewBuffer(payload))
+		if err != nil {
+			t.Errorf("Unexpected error in POST request to /users")
+		}
+		app.ProcessPasswordReset(rr, req)
+		if rr.Code != http.StatusBadRequest {
+			t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, rr.Code)
+		}
+		got := rr.Body.String()
+		if !strings.Contains(got, "record not found") {
+			t.Errorf("Expected body %s, but got %s", "record not found", rr.Body.String())
+		}
+	})
+	t.Run("Expired token", func(t *testing.T) {
+		user, err := mockModel.GetByEmail(user.Email)
+		if err != nil {
+			t.Errorf("Unexpected error in get request to /users")
+		}
+
+		passwordToken, salt, err := token.GenerateTokenAndSalt(32, 16)
+		if err != nil {
+			t.Errorf("Unexpected error in get request to /users")
+		}
+		hashedToken := token.HashToken(passwordToken, salt)
+		err = mockModel.EnterPasswordHash(user.Email, hashedToken, salt)
+		if err != nil {
+			t.Errorf("Unexpected error in get request to /users")
+		}
+		user.PasswordResetExpiry = time.Now().Add(-1 * time.Hour)
+		testPayload := []byte(`{"email": "test@example.com", "password": "securepassword"}`)
+		req, err := http.NewRequest("POST", "/users/password/reset?token="+passwordToken, bytes.NewBuffer(testPayload))
+		if err != nil {
+			t.Errorf("Unexpected error in get request to /users")
+		}
+		rr := httptest.NewRecorder()
+		app.ProcessPasswordReset(rr, req)
+		if rr.Code != http.StatusBadRequest {
+			t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, rr.Code)
+		}
+		got := rr.Body.String()
+		if !strings.Contains(got, errors.PasswordResetExpired) {
+			t.Errorf("Expected body %s, but got %s", errors.PasswordResetExpired, rr.Body.String())
+		}
+	})
+	t.Run("Bad token", func(t *testing.T) {
+		user, err := mockModel.GetByEmail(user.Email)
+		if err != nil {
+			t.Errorf("Unexpected error in get request to /users")
+		}
+
+		passwordToken, salt, err := token.GenerateTokenAndSalt(32, 16)
+		if err != nil {
+			t.Errorf("Unexpected error in get request to /users")
+		}
+		hashedToken := token.HashToken(passwordToken, salt)
+		err = mockModel.EnterPasswordHash(user.Email, hashedToken, salt)
+		if err != nil {
+			t.Errorf("Unexpected error in get request to /users")
+		}
+		user.PasswordResetExpiry = time.Now().Add(-1 * time.Hour)
+		testPayload := []byte(`{"email": "test@example.com", "password": "securepassword"}`)
+		req, err := http.NewRequest("POST", "/users/password/reset?token="+passwordToken+"bad", bytes.NewBuffer(testPayload))
+		if err != nil {
+			t.Errorf("Unexpected error in get request to /users")
+		}
+		rr := httptest.NewRecorder()
+		app.ProcessPasswordReset(rr, req)
+		if rr.Code != http.StatusBadRequest {
+			t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, rr.Code)
+		}
+		got := rr.Body.String()
+		if !strings.Contains(got, errors.InvalidToken) {
+			t.Errorf("Expected body %s, but got %s", errors.InvalidToken, rr.Body.String())
+		}
+	})
+}
+
 func TestApp_Authenticate(t *testing.T) {
 	app := App{userModel: &models.UserModelMock{DB: []*models.User{}}}
 	user := models.User{
@@ -446,7 +602,6 @@ func TestApp_Authenticate(t *testing.T) {
 
 	})
 	t.Run("Bad json", func(t *testing.T) {
-		payload = []byte(`{"email": "admin@admin.com" "password": "admin"}`)
 		req, err := http.NewRequest("POST", "/users/login", bytes.NewBuffer(badPayload))
 		if err != nil {
 			t.Errorf("Unexpected error in POST request to /users/login")

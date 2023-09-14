@@ -354,27 +354,6 @@ func TestUserModel_ConsumePasswordReset(t *testing.T) {
 			t.Errorf("Expected no error, got %s", err)
 		}
 	})
-	t.Run("Password reset token expired", func(t *testing.T) {
-		userToDelete := User{
-			Email:    "deleteuser@localhost",
-			Password: "veryinsecurepassword",
-		}
-		err := userModel.Insert(&userToDelete)
-		if err != nil {
-			t.Errorf("Expected no error, got %s", err)
-		}
-
-		passwordToken, salt, err := token.GenerateTokenAndSalt(32, 16)
-		if err != nil {
-			t.Errorf("Expected no error, got %s", err)
-		}
-
-		hashedToken := token.HashToken(passwordToken, salt)
-		err = userModel.EnterPasswordHash(userToDelete.Email, string(hashedToken), string(salt))
-		if err != nil {
-			t.Errorf("Expected no error, got %s", err)
-		}
-	})
 	t.Run("User not found", func(t *testing.T) {
 		err = userModel.ConsumePasswordReset("notfound")
 		if err == nil {
