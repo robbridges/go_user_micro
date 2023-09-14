@@ -160,7 +160,6 @@ func (app *App) ProcessPasswordReset(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, errors.InvalidToken, http.StatusBadRequest)
 		return
 	}
-
 	if !user.PasswordResetExpiry.Before(time.Now()) {
 		http.Error(w, errors.PasswordResetExpired, http.StatusBadRequest)
 		return
@@ -170,7 +169,11 @@ func (app *App) ProcessPasswordReset(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	//TODO I should clear the current hashedToken, salt and expiry
+	err = app.userModel.ConsumePasswordReset(user.Email)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	app.writeJSON(w, 200, "Password updated successfully")
 
 }

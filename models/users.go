@@ -165,7 +165,6 @@ func (m *UserModel) ConsumePasswordReset(email string) error {
 		password_reset_salt = $3
 	WHERE email = $4
 	RETURNING password_reset_expires, password_reset_token, password_reset_salt;`
-
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	result, err := m.DB.ExecContext(ctx, query, time.Time{}, "", "", email)
