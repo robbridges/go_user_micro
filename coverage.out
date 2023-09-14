@@ -106,9 +106,9 @@ the_lonely_road/models/users.go:276.26,278.18 2 1
 the_lonely_road/models/users.go:278.18,280.5 1 1
 the_lonely_road/models/users.go:281.4,281.20 1 1
 the_lonely_road/models/users.go:284.2,284.35 1 1
-the_lonely_road/models/users.go:287.88,289.16 2 0
+the_lonely_road/models/users.go:287.88,289.16 2 1
 the_lonely_road/models/users.go:289.16,291.3 1 0
-the_lonely_road/models/users.go:292.2,295.12 4 0
+the_lonely_road/models/users.go:292.2,295.12 4 1
 the_lonely_road/models/users.go:298.71,300.16 2 0
 the_lonely_road/models/users.go:300.16,302.3 1 0
 the_lonely_road/models/users.go:303.2,306.12 4 0
