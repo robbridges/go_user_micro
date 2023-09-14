@@ -295,4 +295,14 @@ func TestUserModel_EnterPasswordHash(t *testing.T) {
 			t.Errorf("Expected no error, got %s", err)
 		}
 	})
+	t.Run("User not found", func(t *testing.T) {
+		passwordToken, salt, err := token.GenerateTokenAndSalt(32, 16)
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
+		}
+		err = userModel.EnterPasswordHash("notfound", string(passwordToken), string(salt))
+		if err == nil {
+			t.Errorf("Expected error, got nil")
+		}
+	})
 }

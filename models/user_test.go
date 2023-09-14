@@ -199,6 +199,7 @@ func TestUserModelMock_EnterPasswordHash(t *testing.T) {
 			t.Errorf("Expected PasswordResetToken and PasswordResetSalt to be set, got %s and %s", mockUser.PasswordResetHashToken, mockUser.PasswordResetSalt)
 		}
 	})
+
 	t.Run("User not found", func(t *testing.T) {
 		err = userModel.EnterPasswordHash("notfound", "notfound", "notfound")
 		if err == nil && err.Error() != "user not found" {
