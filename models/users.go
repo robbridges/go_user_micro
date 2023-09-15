@@ -136,7 +136,7 @@ func (m *UserModel) UpdatePassword(userID int, password string) error {
 }
 
 func (m *UserModel) EnterPasswordHash(email, passwordHash, salt string) error {
-	expiry := time.Now().Add(30 * time.Minute)
+	expiry := time.Now().Add(8 * time.Hour)
 	query := `UPDATE users
 	SET password_reset_expires = $1,
 		password_reset_token = $2,

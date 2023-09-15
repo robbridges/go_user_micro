@@ -485,6 +485,52 @@ func TestApp_ProcessPasswordReset(t *testing.T) {
 			t.Errorf("Expected body %s, but got %s", "record not found", rr.Body.String())
 		}
 	})
+	t.Run("Expired token", func(t *testing.T) {
+		// Get the user from the mock model.
+		newUser, err := mockModel.GetByEmail("test@example.com")
+		if err != nil {
+			t.Errorf("Failed to retrieve user: %v", err)
+		}
+
+		// Generate a password reset token, hash it, and set it in the mock model.
+		passwordToken, salt, err := token.GenerateTokenAndSalt(32, 16)
+		if err != nil {
+			t.Errorf("Failed to generate token and salt: %v", err)
+		}
+		hashedToken := token.HashToken(passwordToken, salt)
+		err = mockModel.EnterPasswordHash(newUser.Email, hashedToken, salt)
+		if err != nil {
+			t.Errorf("Failed to enter password hash: %v", err)
+		}
+
+		// Expire the token by setting PasswordResetExpiry to a time in the past.
+		newUser.PasswordResetExpiry = time.Now().Add(-time.Hour)
+
+		// Prepare a test payload and create an HTTP request.
+		testPayload := []byte(`{"email": "test@example.com", "password": "securepassword"}`)
+		req, err := http.NewRequest("POST", "/users/password/reset?token="+passwordToken, bytes.NewBuffer(testPayload))
+		if err != nil {
+			t.Errorf("Failed to create HTTP request: %v", err)
+		}
+
+		// Create a response recorder to capture the HTTP response.
+		rr := httptest.NewRecorder()
+
+		// Call the ProcessPasswordReset function with the expired token.
+		app.ProcessPasswordReset(rr, req)
+
+		// Check the response status code.
+		if rr.Code != http.StatusBadRequest {
+			t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, rr.Code)
+		}
+
+		// Check the response body for the expected error message.
+		expectedErrorMessage := errors.PasswordResetExpired
+		responseBody := rr.Body.String()
+		if !strings.Contains(responseBody, expectedErrorMessage) {
+			t.Errorf("Expected body to contain '%s', but got '%s'", expectedErrorMessage, responseBody)
+		}
+	})
 	t.Run("Bad token", func(t *testing.T) {
 		user, err := mockModel.GetByEmail(user.Email)
 		if err != nil {
