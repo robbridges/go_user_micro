@@ -1,11 +1,13 @@
 package mailer
 
 import (
+	"fmt"
 	"github.com/go-mail/mail/v2"
 	"github.com/spf13/viper"
 	"reflect"
 	"strings"
 	"testing"
+	"the_lonely_road/token"
 )
 
 func TestNewEmailService(t *testing.T) {
@@ -129,5 +131,33 @@ func TestSendEmail(t *testing.T) {
 
 	if err != nil {
 		t.Fatalf("Error sending email: %v", err)
+	}
+}
+
+func TestEmailService_ForgotPassword(t *testing.T) {
+	viper.SetConfigFile("../email.env")
+	if err := viper.ReadInConfig(); err != nil {
+		t.Fatalf("failed to read config file: %v", err)
+	}
+
+	cfg := SMTPConfig{
+		Host:     viper.GetString("EMAIL_HOST"),
+		Port:     viper.GetInt("EMAIL_PORT"),
+		Username: viper.GetString("EMAIL_USERNAME"),
+		Password: viper.GetString("EMAIL_PASSWORD"),
+	}
+
+	emailService := NewEmailService(cfg)
+	token, _, err := token.GenerateTokenAndSalt(32, 16)
+	if err != nil {
+		t.Errorf("Error generating token: %v", err)
+	}
+	url := fmt.Sprintf("localhost:8080/users/password/reset?token=%s", token)
+	err = emailService.ForgotPassword("admin@admin.com", url)
+	if err != nil {
+		t.Errorf("Error sending email: %v", err)
+	}
+	if !strings.Contains(url, token) {
+		t.Errorf("Token should be in URL")
 	}
 }

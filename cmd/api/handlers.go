@@ -130,11 +130,14 @@ func (app *App) updateUserPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// send email with token
-	err = app.emailer.ForgotPassword(user.Email, fmt.Sprintf("localhost:8080/users/password/reset?token=%s", passwordToken))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	app.background(func() {
+		err = app.emailer.ForgotPassword(user.Email, fmt.Sprintf("localhost:8080/users/password/reset?token=%s", passwordToken))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	})
+
 	app.writeJSON(w, 200, errors.PasswordResetEmail)
 }
 

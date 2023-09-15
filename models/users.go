@@ -185,11 +185,11 @@ func (m *UserModel) Authenticate(email, password string) (*User, error) {
 	}
 
 	row := m.DB.QueryRow(
-		`SELECT id, password_hash
+		`SELECT id, password_hash, created_at
 		FROM users WHERE email=$1`, email,
 	)
 
-	err := row.Scan(&user.ID, &user.Password)
+	err := row.Scan(&user.ID, &user.Password, &user.CreatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("authenticate: %w", err)
 	}

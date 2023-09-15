@@ -80,3 +80,21 @@ func (app *App) readJSON(w http.ResponseWriter, r *http.Request, dst any) error 
 	}
 	return nil
 }
+
+func (app *App) background(fn func()) {
+	// Launch a background goroutine.
+
+	app.wg.Add(1)
+
+	go func() {
+		defer app.wg.Done()
+		// Recover any panic.
+		defer func() {
+			if err := recover(); err != nil {
+				fmt.Println(err)
+			}
+		}()
+		// Execute the arbitrary function that we passed as the parameter.
+		fn()
+	}()
+}
