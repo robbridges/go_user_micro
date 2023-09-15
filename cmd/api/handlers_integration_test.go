@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"github.com/spf13/viper"
 	"io"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 	"the_lonely_road/errors"
 	"the_lonely_road/mailer"
 	"the_lonely_road/models"
+	"the_lonely_road/token"
 	"time"
 )
 
@@ -375,6 +377,144 @@ func Test_UpdatePasswordIntegration(t *testing.T) {
 
 		if string(body) != "User password must be 4 characters long and email must be 5 characters long\n" {
 			t.Errorf("Expected body %s, but got %s", "invalid user\n", string(body))
+		}
+	})
+}
+
+func TestApp_ProcessPasswordResetIntegration(t *testing.T) {
+	testCfg := data.TestPostgresConfig()
+	testDB, err := data.Open(testCfg)
+	defer testDB.Close()
+	if err != nil {
+		t.Errorf("Expected database to open, but got %s", err)
+	}
+	app := App{userModel: &models.UserModel{DB: testDB}}
+	t.Run("Process password reset Happy path", func(t *testing.T) {
+		hash, salt, err := token.GenerateTokenAndSalt(32, 16)
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
+		}
+		hashedToken := token.HashToken(hash, salt)
+		err = app.userModel.EnterPasswordHash("admin@localhost", hashedToken, salt)
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
+		}
+		server := httptest.NewServer(http.HandlerFunc(app.ProcessPasswordReset))
+		defer server.Close()
+		var emailPayload = []byte(`{"email": "admin@localhost", "password": "newpassword"}`)
+		req, err := http.NewRequest("POST", fmt.Sprintf(server.URL+"/users/password/reset?token=%s", hash), bytes.NewBuffer(emailPayload))
+		if err != nil {
+			t.Errorf("Unexpected error in get request to %s", req.URL)
+		}
+		response, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
+		}
+		defer response.Body.Close()
+		if response.StatusCode != http.StatusOK {
+			t.Errorf("Expected status %d, but got %d", http.StatusOK, response.StatusCode)
+		}
+		want := "password updated succesfully"
+		body, err := io.ReadAll(response.Body)
+		if err != nil {
+			t.Errorf("Unexpected error reading response body: %v", err)
+		}
+		if strings.Contains(string(body), want) {
+			t.Errorf("Expected body %s, but got %s", want, string(body))
+		}
+		user, err := app.userModel.GetByEmail("admin@localhost")
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
+		}
+		if user.PasswordResetHashToken != "" || user.PasswordResetSalt != "" {
+			t.Errorf("Expected salt and hash to be empty")
+		}
+		if !user.PasswordResetExpiry.IsZero() {
+			t.Errorf("Expected expiry to be empty")
+		}
+	})
+	t.Run("Process password reset Sad path", func(t *testing.T) {
+		hash, salt, err := token.GenerateTokenAndSalt(32, 16)
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
+		}
+		hashedToken := token.HashToken(hash, salt)
+		err = app.userModel.EnterPasswordHash("admin@localhost", hashedToken, salt)
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
+		}
+		server := httptest.NewServer(http.HandlerFunc(app.ProcessPasswordReset))
+		defer server.Close()
+		var emailPayload = []byte(`{"email": "admin@localhost", "password": "newpassword"}`)
+		req, err := http.NewRequest("POST", fmt.Sprintf(server.URL+"/users/password/reset?token=%swrong", hash), bytes.NewBuffer(emailPayload))
+		if err != nil {
+			t.Errorf("Unexpected error in get request to %s", req.URL)
+		}
+		response, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
+		}
+		defer response.Body.Close()
+		if response.StatusCode != http.StatusBadRequest {
+			t.Errorf("Expected status %d, but got %d", http.StatusOK, response.StatusCode)
+		}
+		want := "invalid token\n"
+		body, err := io.ReadAll(response.Body)
+		if err != nil {
+			t.Errorf("Unexpected error reading response body: %v", err)
+		}
+		if strings.Contains(string(body), want) {
+			t.Errorf("Expected body %s, but got %s", want, string(body))
+		}
+	})
+	t.Run("Process password reset Invalid payload", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(app.ProcessPasswordReset))
+		defer server.Close()
+
+		req, err := http.NewRequest("POST", server.URL+"/users/password/reset", bytes.NewBuffer(badPayload))
+		if err != nil {
+			t.Errorf("Unexpected error in get request to %s", req.URL)
+		}
+		response, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
+		}
+		defer response.Body.Close()
+		if response.StatusCode != http.StatusBadRequest {
+			t.Errorf("Expected status %d, but got %d", http.StatusBadRequest, response.StatusCode)
+		}
+		want := "body contains bad JSON\n"
+		body, err := io.ReadAll(response.Body)
+		if err != nil {
+			t.Errorf("Unexpected error reading response body: %v", err)
+		}
+		if strings.Contains(string(body), want) {
+			t.Errorf("Expected body %s, but got %s", want, string(body))
+		}
+	})
+	t.Run("Process password reset Invalid email", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(app.ProcessPasswordReset))
+		defer server.Close()
+
+		req, err := http.NewRequest("POST", server.URL+"/users/password/reset", bytes.NewBuffer(emailOnlyBadPayload))
+		if err != nil {
+			t.Errorf("Unexpected error in get request to %s", req.URL)
+		}
+		response, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
+		}
+		defer response.Body.Close()
+		if response.StatusCode != http.StatusBadRequest {
+			t.Errorf("Expected status %d, but got %d", http.StatusBadRequest, response.StatusCode)
+		}
+		want := "body contains bad JSON\n"
+		body, err := io.ReadAll(response.Body)
+		if err != nil {
+			t.Errorf("Unexpected error reading response body: %v", err)
+		}
+		if strings.Contains(string(body), want) {
+			t.Errorf("Expected body %s, but got %s", want, string(body))
 		}
 	})
 }
