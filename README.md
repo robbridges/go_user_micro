@@ -33,6 +33,8 @@ I did my best to not rely on an env so any repo can plug and play this, but you 
 - [x] Implement email service
 - [x] env variable management
 - [x] Sending email as password reset
+- [x] Password Reset as background go routine within handler
+- [x] Helper function to recover from panics within background tasks
 - [] Implement CORS
 - [] General cleanup - tests are very verbose and repetitive, I'm okay with that as they're also to document how to use the 
      service but there's also likely a better way
