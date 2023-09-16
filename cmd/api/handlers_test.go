@@ -575,66 +575,74 @@ func TestApp_Authenticate(t *testing.T) {
 			t.Errorf("Expected cookie to be set, but got %s", rr.Header().Get("Set-Cookie"))
 		}
 	})
-	t.Run("Bad email", func(t *testing.T) {
+}
 
-		req, err := http.NewRequest("POST", "/users/login", bytes.NewBuffer(badEmailPayload))
-		if err != nil {
-			t.Errorf("Unexpected error in POST request to /users/login")
-		}
-		rr := httptest.NewRecorder()
-		app.Authenticate(rr, req)
-		if rr.Code != http.StatusBadRequest {
-			t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, rr.Code)
-		}
-		if rr.Body.String() != "User password must be 4 characters long and email must be 5 characters long\n" {
-			t.Errorf("Expected bad email error, got %s", rr.Body.String())
-		}
+func TestApp_Authenticate_SadPaths(t *testing.T) {
+	app := App{userModel: &models.UserModelMock{DB: []*models.User{}}}
+	user := models.User{
+		ID:        1,
+		Password:  "admin",
+		Email:     "admin@admin.com",
+		CreatedAt: time.Now(),
+	}
+	mockModel, ok := app.userModel.(*models.UserModelMock)
+	if !ok {
+		t.Errorf("Expected app.userModel to be of type UserModelMock")
+	}
+	// actually insert the model instead of just appending to encrypt the password I should have done this everywhere.
+	err := mockModel.Insert(&user)
+	if err != nil {
+		t.Errorf("Unexpected error in inserting user")
+	}
 
-	})
-	t.Run("Bad json", func(t *testing.T) {
-		req, err := http.NewRequest("POST", "/users/login", bytes.NewBuffer(badPayload))
-		if err != nil {
-			t.Errorf("Unexpected error in POST request to /users/login")
-		}
-		rr := httptest.NewRecorder()
-		app.Authenticate(rr, req)
-		if rr.Code != http.StatusBadRequest {
-			t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, rr.Code)
-		}
-		if rr.Body.String() != "body contains badly-form JSON (at character 30)\n" {
-			t.Errorf("Expected bad json error, got %s", rr.Body.String())
-		}
-	})
-	t.Run("User not found", func(t *testing.T) {
-		payload = []byte(`{"email": "notfound", "password": "admin"}`)
-		req, err := http.NewRequest("POST", "/users/login", bytes.NewBuffer(payload))
-		if err != nil {
-			t.Errorf("Unexpected error in POST request to /users/login")
-		}
-		rr := httptest.NewRecorder()
-		app.Authenticate(rr, req)
-		if rr.Code != http.StatusBadRequest {
-			t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, rr.Code)
-		}
-		if rr.Body.String() != "Invalid Credentials\n" {
-			t.Errorf("Expected record not found error, got %s", rr.Body.String())
-		}
-	})
-	t.Run("Bad password", func(t *testing.T) {
-		payload = []byte(`{"email": "admin@admin.com", "password": "badpassword"}`)
-		req, err := http.NewRequest("POST", "/users/login", bytes.NewBuffer(payload))
-		if err != nil {
-			t.Errorf("Unexpected error in POST request to /users/login")
-		}
-		rr := httptest.NewRecorder()
-		app.Authenticate(rr, req)
-		if rr.Code != http.StatusBadRequest {
-			t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, rr.Code)
-		}
-		if rr.Body.String() != "Invalid Credentials\n" {
-			t.Errorf("Expected record not found error, got %s", rr.Body.String())
-		}
-	})
+	testCases := []struct {
+		name             string
+		payload          []byte
+		expectedCode     int
+		expectedResponse string
+	}{
+		{
+			name:             "Bad email",
+			payload:          []byte(`{"email": "abc", "password": "securepassword"}`),
+			expectedCode:     http.StatusBadRequest,
+			expectedResponse: "User password must be 4 characters long and email must be 5 characters long\n",
+		},
+		{
+			name:             "Bad JSON",
+			payload:          []byte(badPayload),
+			expectedCode:     http.StatusBadRequest,
+			expectedResponse: "body contains badly-form JSON (at character 30)\n",
+		},
+		{
+			name:             "User not found",
+			payload:          []byte(`{"email": "notfound", "password": "admin"}`),
+			expectedCode:     http.StatusBadRequest,
+			expectedResponse: "Invalid Credentials\n",
+		},
+		{
+			name:             "Bad password",
+			payload:          []byte(`{"email": "admin@admin.com", "password": "badpassword"}`),
+			expectedCode:     http.StatusBadRequest,
+			expectedResponse: "Invalid Credentials\n",
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			req, err := http.NewRequest("POST", "/users/login", bytes.NewBuffer(testCase.payload))
+			if err != nil {
+				t.Errorf("Unexpected error in POST request to /users/login: %v", err)
+			}
+			rr := httptest.NewRecorder()
+			app.Authenticate(rr, req)
+			if rr.Code != testCase.expectedCode {
+				t.Errorf("Expected status code %d, got %d", testCase.expectedCode, rr.Code)
+			}
+			if rr.Body.String() != testCase.expectedResponse {
+				t.Errorf("Expected response '%s', got '%s'", testCase.expectedResponse, rr.Body.String())
+			}
+		})
+	}
 }
 
 func (app *App) checkMockDBSize(t *testing.T, expected int) {

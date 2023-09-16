@@ -1,6 +1,14 @@
 mode: set
 the_lonely_road/JWT/jwt.go:12.46,29.2 9 1
 the_lonely_road/JWT/jwt.go:31.57,43.2 2 1
+the_lonely_road/data/postgres.go:18.46,27.2 1 1
+the_lonely_road/data/postgres.go:29.43,38.2 1 1
+the_lonely_road/data/postgres.go:40.52,46.16 2 1
+the_lonely_road/data/postgres.go:46.16,48.3 1 0
+the_lonely_road/data/postgres.go:49.2,50.16 2 1
+the_lonely_road/data/postgres.go:50.16,52.3 1 0
+the_lonely_road/data/postgres.go:54.2,54.16 1 1
+the_lonely_road/data/postgres.go:57.44,60.2 1 1
 the_lonely_road/token/token.go:9.88,13.16 3 1
 the_lonely_road/token/token.go:13.16,15.3 1 0
 the_lonely_road/token/token.go:16.2,21.16 4 1
@@ -30,14 +38,6 @@ the_lonely_road/validator/validator.go:38.52,40.2 1 1
 the_lonely_road/validator/validator.go:42.44,44.31 2 1
 the_lonely_road/validator/validator.go:44.31,46.3 1 1
 the_lonely_road/validator/validator.go:47.2,47.41 1 1
-the_lonely_road/data/postgres.go:18.46,27.2 1 1
-the_lonely_road/data/postgres.go:29.43,38.2 1 1
-the_lonely_road/data/postgres.go:40.52,46.16 2 1
-the_lonely_road/data/postgres.go:46.16,48.3 1 0
-the_lonely_road/data/postgres.go:49.2,50.16 2 1
-the_lonely_road/data/postgres.go:50.16,52.3 1 0
-the_lonely_road/data/postgres.go:54.2,54.16 1 1
-the_lonely_road/data/postgres.go:57.44,60.2 1 1
 the_lonely_road/cmd/api/handlers.go:20.68,27.2 2 1
 the_lonely_road/cmd/api/handlers.go:30.68,37.16 3 1
 the_lonely_road/cmd/api/handlers.go:37.16,40.3 2 1
