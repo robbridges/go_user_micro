@@ -37,5 +37,6 @@ I did my best to not rely on an env so any repo can plug and play this, but you 
 - [x] Password Reset as background go routine within handler
 - [x] Helper function to recover from panics within background tasks
 - [x] Implement CORS
-- [] General cleanup - tests are very verbose and repetitive, I'm okay with that as they're also to document how to use the 
-     service but there's also likely a better way
+- [x] General cleanup - tests are very verbose and repetitive, The mock handlers are now table tests, still deciding if I want them all like that.
+- 
+
