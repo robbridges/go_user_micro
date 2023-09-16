@@ -38,5 +38,5 @@ I did my best to not rely on an env so any repo can plug and play this, but you 
 - [x] Helper function to recover from panics within background tasks
 - [x] Implement CORS
 - [x] General cleanup - tests are very verbose and repetitive, The mock handlers are now table tests, still deciding if I want them all like that.
-- 
+
 
