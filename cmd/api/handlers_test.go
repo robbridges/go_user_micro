@@ -101,83 +101,81 @@ func TestApp_CreateUser(t *testing.T) {
 		// cast user model to mock to check array length
 		app.checkMockDBSize(t, 1)
 	})
-	t.Run("Bad json", func(t *testing.T) {
-		app := App{userModel: &models.UserModelMock{DB: []*models.User{}}}
+}
 
-		req, err := http.NewRequest("POST", "/users", bytes.NewBuffer(badPayload))
-		if err != nil {
-			t.Errorf("Unexpected error in get request to %s", req.URL)
-		}
+func TestApp_CreateUser_SadPaths(t *testing.T) {
+	tests := []struct {
+		name          string
+		payload       []byte
+		expectedCode  int
+		expectedError string
+	}{
+		{
+			name:          "Bad json",
+			payload:       badPayload,
+			expectedCode:  http.StatusBadRequest,
+			expectedError: "body contains badly-form JSON (at character 30)\n",
+		},
+		{
+			name:          "Duplicate user",
+			payload:       payload,
+			expectedCode:  http.StatusInternalServerError,
+			expectedError: "duplicate email\n",
+		},
+		{
+			name:          "Bad email",
+			payload:       badEmailPayload,
+			expectedCode:  http.StatusBadRequest,
+			expectedError: "User password must be 4 characters long and email must be 5 characters long\n",
+		},
+	}
 
-		rr := httptest.NewRecorder()
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			app := App{userModel: &models.UserModelMock{DB: []*models.User{}}}
 
-		app.CreateUser(rr, req)
+			if strings.Contains(test.name, "Duplicate user") {
+				// Add the user before the test if the test name contains "Duplicate user."
+				req, err := http.NewRequest("POST", "/users", bytes.NewBuffer(payload))
+				if err != nil {
+					t.Errorf("Unexpected error in creating HTTP request: %v", err)
+				}
+				rr := httptest.NewRecorder()
+				app.CreateUser(rr, req)
+			}
 
-		if rr.Code != http.StatusBadRequest {
-			t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, rr.Code)
-		}
-		var response models.User
-		err = json.Unmarshal(rr.Body.Bytes(), &response)
-		if err == nil {
-			t.Errorf("Error expected when unmarshaling JSON: %v", err)
-		}
-		// no user should be entered as the function errors and returns
-		app.checkMockDBSize(t, 0)
-	})
-	t.Run("Duplicate user", func(t *testing.T) {
-		app := App{userModel: &models.UserModelMock{DB: []*models.User{}}}
+			req, err := http.NewRequest("POST", "/users", bytes.NewBuffer(test.payload))
+			if err != nil {
+				t.Errorf("Unexpected error in creating HTTP request: %v", err)
+			}
 
-		req, err := http.NewRequest("POST", "/users", bytes.NewBuffer(payload))
-		if err != nil {
-			t.Errorf("Unexpected error in get request to %s", req.URL)
-		}
+			rr := httptest.NewRecorder()
+			app.CreateUser(rr, req)
 
-		rr := httptest.NewRecorder()
+			if rr.Code != test.expectedCode {
+				t.Errorf("Expected status code %d, got %d", test.expectedCode, rr.Code)
+			}
 
-		app.CreateUser(rr, req)
+			if test.name == "Bad json" || test.name == "Bad email" {
+				var response models.User
+				err = json.Unmarshal(rr.Body.Bytes(), &response)
+				if err == nil {
+					t.Errorf("Error expected when unmarshaling JSON: %v", err)
+				}
+			}
 
-		if rr.Code != http.StatusOK {
-			t.Errorf("Expected status code %d, got %d", http.StatusOK, rr.Code)
-		}
+			if test.expectedError != "" && rr.Body.String() != test.expectedError {
+				t.Errorf("Expected '%s', but got '%s'", test.expectedError, rr.Body.String())
+			}
 
-		var response models.User
-		err = json.Unmarshal(rr.Body.Bytes(), &response)
-		if err != nil {
-			t.Errorf("Error expected when unmarshaling JSON: %v", err)
-		}
-
-		req, err = http.NewRequest("POST", "/users", bytes.NewBuffer(payload))
-		rr = httptest.NewRecorder()
-		app.CreateUser(rr, req)
-		if rr.Code != http.StatusInternalServerError {
-			t.Errorf("Expected status code %d, got %d", http.StatusInternalServerError, rr.Code)
-		}
-		app.checkMockDBSize(t, 1)
-	})
-	t.Run("Bad email", func(t *testing.T) {
-		app := App{userModel: &models.UserModelMock{DB: []*models.User{}}}
-
-		req, err := http.NewRequest("POST", "/users", bytes.NewBuffer(badEmailPayload))
-		if err != nil {
-			t.Errorf("Unexpected error in get request to %s", req.URL)
-		}
-
-		rr := httptest.NewRecorder()
-
-		app.CreateUser(rr, req)
-
-		if rr.Code != http.StatusBadRequest {
-			t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, rr.Code)
-		}
-
-		// validate that the validator did not like the user
-		if string(rr.Body.String()) != "User password must be 4 characters long and email must be 5 characters long\n" {
-			t.Errorf("Expected bad user error, got %s", rr.Body.String())
-		}
-		// no user should be implemented
-		app.checkMockDBSize(t, 0)
-	})
-
+			// Check the mock DB size if the test case name is "Duplicate user."
+			if test.name == "Duplicate user" {
+				app.checkMockDBSize(t, 1)
+			} else {
+				app.checkMockDBSize(t, 0)
+			}
+		})
+	}
 }
 
 func TestApp_getUserByEmail(t *testing.T) {
@@ -219,69 +217,64 @@ func TestApp_getUserByEmail(t *testing.T) {
 		}
 		app.checkMockDBSize(t, 1)
 	})
-	t.Run("Bad json", func(t *testing.T) {
+}
 
-		badEmailpayload := []byte(`{"email: "badjson"}`)
-		req, err := http.NewRequest("GET", "/users", bytes.NewBuffer(badEmailpayload))
-		if err != nil {
-			t.Errorf("Unexpected error in get request to /users")
-		}
-		rr := httptest.NewRecorder()
-		app.getUserByEmail(rr, req)
-		if rr.Code != http.StatusBadRequest {
-			t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, rr.Code)
-		}
-		var secondResponseUser models.User
-		err = json.Unmarshal(rr.Body.Bytes(), &secondResponseUser)
-		if err == nil {
-			t.Error("bad json should have thrown error but got nil")
-		}
-	})
-	t.Run("User not found", func(t *testing.T) {
+func TestGetUserByEmail_SadPaths(t *testing.T) {
+	tests := []struct {
+		name          string
+		payload       []byte
+		expectedCode  int
+		expectedError string
+	}{
+		{
+			name:          "Bad json",
+			payload:       []byte(`{"email: "badjson"}`),
+			expectedCode:  http.StatusBadRequest,
+			expectedError: "body contains badly-form JSON (at character 11)\n",
+		},
+		{
+			name:          "User not found",
+			payload:       []byte(`{"email": "test2@example.com"}`),
+			expectedCode:  http.StatusBadRequest,
+			expectedError: "record not found\n",
+		},
+		{
+			name:          "Bad email req",
+			payload:       emailOnlyBadPayload,
+			expectedCode:  http.StatusBadRequest,
+			expectedError: "User password must be 4 characters long and email must be 5 characters long\n",
+		},
+	}
 
-		payload = []byte(`{"email": "test2@example.com"}`)
-		req, err := http.NewRequest("GET", "/users", bytes.NewBuffer(payload))
-		if err != nil {
-			t.Errorf("Unexpected error in get request to /users")
-		}
-		rr := httptest.NewRecorder()
-		app.getUserByEmail(rr, req)
-		if rr.Code != http.StatusBadRequest {
-			t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, rr.Code)
-		}
-		var secondResponseUser models.User
-		err = json.Unmarshal(rr.Body.Bytes(), &secondResponseUser)
-		if err == nil {
-			t.Error("no data to return should result in error")
-		}
+	app := App{userModel: &models.UserModelMock{DB: []*models.User{}}}
 
-		if rr.Code != http.StatusBadRequest {
-			t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, rr.Code)
-		}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			req, err := http.NewRequest("GET", "/users", bytes.NewBuffer(test.payload))
+			if err != nil {
+				t.Errorf("Unexpected error in get request to /users")
+			}
 
-		if rr.Body.String() != "record not found\n" {
-			t.Errorf("Expected record not found error, got %s", rr.Body.String())
-		}
-	})
-	t.Run("Bad email req", func(t *testing.T) {
-		app := App{userModel: &models.UserModelMock{DB: []*models.User{}}}
+			rr := httptest.NewRecorder()
+			app.getUserByEmail(rr, req)
 
-		req, err := http.NewRequest("GET", "/users", bytes.NewBuffer(emailOnlyBadPayload))
-		if err != nil {
-			t.Errorf("Unexpected error in get request to %s", req.URL)
-		}
+			if rr.Code != test.expectedCode {
+				t.Errorf("Expected status code %d, got %d", test.expectedCode, rr.Code)
+			}
 
-		rr := httptest.NewRecorder()
+			if test.name == "Bad json" || test.name == "User not found" {
+				var secondResponseUser models.User
+				err = json.Unmarshal(rr.Body.Bytes(), &secondResponseUser)
+				if err == nil {
+					t.Error(test.expectedError)
+				}
+			}
 
-		app.getUserByEmail(rr, req)
-
-		if rr.Code != http.StatusBadRequest {
-			t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, rr.Code)
-		}
-		if string(rr.Body.String()) != "User password must be 4 characters long and email must be 5 characters long\n" {
-			t.Errorf("Expected bad user error, got %s", rr.Body.String())
-		}
-	})
+			if rr.Body.String() != test.expectedError {
+				t.Errorf("Expected '%s', got '%s'", test.expectedError, rr.Body.String())
+			}
+		})
+	}
 }
 
 func TestApp_updateUserPassword(t *testing.T) {
@@ -338,59 +331,56 @@ func TestApp_updateUserPassword(t *testing.T) {
 			t.Errorf("Expected body %s, but got %s", want, resp)
 		}
 	})
-	t.Run("Bad json", func(t *testing.T) {
+}
 
-		rr := httptest.NewRecorder()
-		payload = []byte(`{"email": "test@example.com" "password": "securepassword"}`)
-		req, err := http.NewRequest("PATCH", "/users", bytes.NewBuffer(payload))
-		if err != nil {
-			t.Errorf("Unexpected error in patch request to /users")
-		}
-		app.updateUserPassword(rr, req)
-		if rr.Code != http.StatusBadRequest {
-			t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, rr.Code)
-		}
-	})
-	t.Run("User not found", func(t *testing.T) {
+func TestApp_updateUserPassword_SadPaths(t *testing.T) {
+	testCases := []struct {
+		name             string
+		payload          []byte
+		expectedCode     int
+		expectedResponse string
+	}{
+		{
+			name:             "Bad JSON",
+			payload:          []byte(`{"email": "test@example.com" "password": "securepassword"}`),
+			expectedCode:     http.StatusBadRequest,
+			expectedResponse: "body contains badly-form JSON (at character 30)",
+		},
+		{
+			name:             "User not found",
+			payload:          []byte(`{"email": "test2@example.com"}`),
+			expectedCode:     http.StatusBadRequest,
+			expectedResponse: "record not found",
+		},
+		{
+			name:             "Bad email request",
+			payload:          emailOnlyBadPayload,
+			expectedCode:     http.StatusBadRequest,
+			expectedResponse: "User password must be 4 characters long and email must be 5 characters long",
+		},
+	}
 
-		payload = []byte(`{"email": "test2@example.com"}`)
-		req, err := http.NewRequest("PATCH", "/users", bytes.NewBuffer(payload))
-		if err != nil {
-			t.Errorf("Unexpected error in get request to /users")
-		}
-		rr := httptest.NewRecorder()
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			app := App{userModel: &models.UserModelMock{DB: []*models.User{{ID: 1}}}}
 
-		app.updateUserPassword(rr, req)
+			req, err := http.NewRequest("PATCH", "/users", bytes.NewBuffer(tc.payload))
+			if err != nil {
+				t.Errorf("Unexpected error in creating HTTP request: %v", err)
+			}
 
-		t.Log(rr.Body.String())
-		if string(rr.Body.String()) != "record not found\n" {
-			t.Errorf("Expected record not found error, got %s", rr.Body.String())
-		}
+			rr := httptest.NewRecorder()
+			app.updateUserPassword(rr, req)
 
-		if rr.Code != http.StatusBadRequest {
-			t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, rr.Code)
-		}
+			if rr.Code != tc.expectedCode {
+				t.Errorf("Expected status code %d, got %d", tc.expectedCode, rr.Code)
+			}
 
-		app.checkMockDBSize(t, 1)
-	})
-	t.Run("Bad email req", func(t *testing.T) {
-		req, err := http.NewRequest("PATCH", "/users", bytes.NewBuffer(emailOnlyBadPayload))
-		if err != nil {
-			t.Errorf("Unexpected error in get request to %s", req.URL)
-		}
-
-		rr := httptest.NewRecorder()
-
-		app.updateUserPassword(rr, req)
-
-		if rr.Code != http.StatusBadRequest {
-			t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, rr.Code)
-		}
-		if string(rr.Body.String()) != "User password must be 4 characters long and email must be 5 characters long\n" {
-			t.Errorf("Expected bad user error, got %s", rr.Body.String())
-		}
-	})
-
+			if !strings.Contains(rr.Body.String(), tc.expectedResponse) {
+				t.Errorf("Expected body to contain '%s', but got '%s'", tc.expectedResponse, rr.Body.String())
+			}
+		})
+	}
 }
 
 func TestApp_ProcessPasswordReset(t *testing.T) {
@@ -445,122 +435,102 @@ func TestApp_ProcessPasswordReset(t *testing.T) {
 			t.Errorf("Expected body %s, but got %s", "password updated successfully", rr.Body.String())
 		}
 	})
-	t.Run("Bad json", func(t *testing.T) {
-		passwordToken, _, err := token.GenerateTokenAndSalt(32, 16)
-		if err != nil {
-			t.Errorf("Unexpected error in get request to /users")
-		}
+}
 
-		rr := httptest.NewRecorder()
-		req, err := http.NewRequest("POST", "/users/password/reset?token="+passwordToken, bytes.NewBuffer(badPayload))
-		if err != nil {
-			t.Errorf("Unexpected error in patch request to /users")
-		}
-		app.ProcessPasswordReset(rr, req)
-		if rr.Code != http.StatusBadRequest {
-			t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, rr.Code)
-		}
-		got := rr.Body.String()
-		if !strings.Contains(got, "body contains bady-form JSON") {
-			t.Errorf("Expected body %s, but got %s", "body contains bady-form JSON", rr.Body.String())
-		}
-	})
-	t.Run("User not found", func(t *testing.T) {
-		passwordToken, _, err := token.GenerateTokenAndSalt(32, 16)
-		if err != nil {
-			t.Errorf("Unexpected error in hashing token")
-		}
-		rr := httptest.NewRecorder()
-		payload = []byte(`{"email": "notfound", "password": "securepassword"}`)
-		req, err := http.NewRequest("POST", "/users/password/reset?token="+passwordToken, bytes.NewBuffer(payload))
-		if err != nil {
-			t.Errorf("Unexpected error in POST request to /users")
-		}
-		app.ProcessPasswordReset(rr, req)
-		if rr.Code != http.StatusBadRequest {
-			t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, rr.Code)
-		}
-		got := rr.Body.String()
-		if !strings.Contains(got, "record not found") {
-			t.Errorf("Expected body %s, but got %s", "record not found", rr.Body.String())
-		}
-	})
-	t.Run("Expired token", func(t *testing.T) {
-		// Get the user from the mock model.
-		newUser, err := mockModel.GetByEmail("test@example.com")
-		if err != nil {
-			t.Errorf("Failed to retrieve user: %v", err)
-		}
+func TestProcessPasswordReset_SadPaths(t *testing.T) {
+	tests := []struct {
+		name          string
+		token         string
+		payload       []byte
+		expectedCode  int
+		expectedError string
+	}{
+		{
+			name:          "Bad json",
+			token:         "valid_token",
+			payload:       []byte("badPayload"),
+			expectedCode:  http.StatusBadRequest,
+			expectedError: "body contains badly-form JSON",
+		},
+		{
+			name:          "User not found",
+			token:         "valid_token",
+			payload:       []byte(`{"email": "notfound", "password": "securepassword"}`),
+			expectedCode:  http.StatusBadRequest,
+			expectedError: "record not found",
+		},
+		{
+			name:          "Expired token",
+			token:         "expired_token",
+			payload:       []byte(`{"email": "test@example.com", "password": "securepassword"}`),
+			expectedCode:  http.StatusBadRequest,
+			expectedError: "Password reset token has expired",
+		},
+		{
+			name:          "Bad token",
+			token:         "invalid_token",
+			payload:       []byte(`{"email": "test@example.com", "password": "securepassword"}`),
+			expectedCode:  http.StatusBadRequest,
+			expectedError: "Invalid Token",
+		},
+	}
 
-		// Generate a password reset token, hash it, and set it in the mock model.
-		passwordToken, salt, err := token.GenerateTokenAndSalt(32, 16)
-		if err != nil {
-			t.Errorf("Failed to generate token and salt: %v", err)
-		}
-		hashedToken := token.HashToken(passwordToken, salt)
-		err = mockModel.EnterPasswordHash(newUser.Email, hashedToken, salt)
-		if err != nil {
-			t.Errorf("Failed to enter password hash: %v", err)
-		}
+	app := App{userModel: &models.UserModelMock{DB: []*models.User{}}}
+	user := models.User{
+		ID:        1,
+		Password:  "secret",
+		Email:     "test@example.com",
+		CreatedAt: time.Now(),
+	}
 
-		// Expire the token by setting PasswordResetExpiry to a time in the past.
-		newUser.PasswordResetExpiry = time.Now().Add(-time.Hour)
+	mockModel, ok := app.userModel.(*models.UserModelMock)
+	if !ok {
+		t.Errorf("Expected app.userModel to be of type UserModelMock")
+	}
+	mockModel.DB = append(mockModel.DB, &user)
 
-		// Prepare a test payload and create an HTTP request.
-		testPayload := []byte(`{"email": "test@example.com", "password": "securepassword"}`)
-		req, err := http.NewRequest("POST", "/users/password/reset?token="+passwordToken, bytes.NewBuffer(testPayload))
-		if err != nil {
-			t.Errorf("Failed to create HTTP request: %v", err)
-		}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			// Hash and salt the password here
+			passwordToken, salt, err := token.GenerateTokenAndSalt(32, 16)
+			if err != nil {
+				t.Errorf("Unexpected error in hashing token")
+			}
+			hashedToken := token.HashToken(passwordToken, salt)
+			err = mockModel.EnterPasswordHash(user.Email, hashedToken, salt)
+			if err != nil {
+				t.Errorf("Unexpected error in entering password hash")
+			}
 
-		// Create a response recorder to capture the HTTP response.
-		rr := httptest.NewRecorder()
+			// Append "bad" to the token for the "Bad token" test case
+			if test.name == "Bad token" {
+				test.token += "bad"
+			}
+			// expire the password token if expired token test
+			if test.name == "Expired token" {
+				user.PasswordResetExpiry = time.Now().Add(-time.Hour)
+			}
 
-		// Call the ProcessPasswordReset function with the expired token.
-		app.ProcessPasswordReset(rr, req)
+			// Create a recorder and request
+			rr := httptest.NewRecorder()
+			req, err := http.NewRequest("POST", "/users/password/reset?token="+test.token, bytes.NewBuffer(test.payload))
+			if err != nil {
+				t.Errorf("Unexpected error in creating HTTP request: %v", err)
+			}
 
-		// Check the response status code.
-		if rr.Code != http.StatusBadRequest {
-			t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, rr.Code)
-		}
+			// Call the ProcessPasswordReset function with the test case.
+			app.ProcessPasswordReset(rr, req)
 
-		// Check the response body for the expected error message.
-		expectedErrorMessage := errors.PasswordResetExpired
-		responseBody := rr.Body.String()
-		if !strings.Contains(responseBody, expectedErrorMessage) {
-			t.Errorf("Expected body to contain '%s', but got '%s'", expectedErrorMessage, responseBody)
-		}
-	})
-	t.Run("Bad token", func(t *testing.T) {
-		user, err := mockModel.GetByEmail(user.Email)
-		if err != nil {
-			t.Errorf("Unexpected error in get request to /users")
-		}
+			if rr.Code != test.expectedCode {
+				t.Errorf("Expected status code %d, got %d", test.expectedCode, rr.Code)
+			}
 
-		passwordToken, salt, err := token.GenerateTokenAndSalt(32, 16)
-		if err != nil {
-			t.Errorf("Unexpected error in get request to /users")
-		}
-		hashedToken := token.HashToken(passwordToken, salt)
-		err = mockModel.EnterPasswordHash(user.Email, hashedToken, salt)
-		if err != nil {
-			t.Errorf("Unexpected error in get request to /users")
-		}
-		testPayload := []byte(`{"email": "test@example.com", "password": "securepassword"}`)
-		req, err := http.NewRequest("POST", "/users/password/reset?token="+passwordToken+"bad", bytes.NewBuffer(testPayload))
-		if err != nil {
-			t.Errorf("Unexpected error in get request to /users")
-		}
-		rr := httptest.NewRecorder()
-		app.ProcessPasswordReset(rr, req)
-		if rr.Code != http.StatusBadRequest {
-			t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, rr.Code)
-		}
-		got := rr.Body.String()
-		if !strings.Contains(got, errors.InvalidToken) {
-			t.Errorf("Expected body %s, but got %s", errors.InvalidToken, rr.Body.String())
-		}
-	})
+			responseBody := rr.Body.String()
+			if !strings.Contains(responseBody, test.expectedError) {
+				t.Errorf("Expected body to contain '%s', but got '%s'", test.expectedError, responseBody)
+			}
+		})
+	}
 }
 
 func TestApp_Authenticate(t *testing.T) {
@@ -631,7 +601,7 @@ func TestApp_Authenticate(t *testing.T) {
 		if rr.Code != http.StatusBadRequest {
 			t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, rr.Code)
 		}
-		if rr.Body.String() != "body contains bady-form JSON (at character 30)\n" {
+		if rr.Body.String() != "body contains badly-form JSON (at character 30)\n" {
 			t.Errorf("Expected bad json error, got %s", rr.Body.String())
 		}
 	})
