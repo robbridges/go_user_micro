@@ -23,7 +23,6 @@ var badPayload = []byte(`{"email": "test@example.com" "password": "securepasswor
 var jsonError = "Wrong Json Marshalled"
 var badEmailPayload = []byte(`{"email": "a", "password": "securepassword"}`)
 var emailOnlyBadPayload = []byte(`{"email": "a"}`)
-var badPasswordGoodEmailPayload = []byte(`{"email": "test@example.com", "password": "a"}`)
 
 func TestApp_HandleHome(t *testing.T) {
 	app := App{}
@@ -194,8 +193,8 @@ func TestApp_getUserByEmail(t *testing.T) {
 	mockModel.DB = append(mockModel.DB, &user)
 	t.Run("Happy Path", func(t *testing.T) {
 
-		payload = []byte(`{"email": "test@example.com"}`)
-		req, err := http.NewRequest("GET", "/users", bytes.NewBuffer(payload))
+		testPayload := []byte(`{"email": "test@example.com"}`)
+		req, err := http.NewRequest("GET", "/users", bytes.NewBuffer(testPayload))
 		if err != nil {
 			t.Errorf("Unexpected error in get request to /users")
 		}
@@ -552,8 +551,8 @@ func TestApp_Authenticate(t *testing.T) {
 		t.Errorf("Unexpected error in inserting user")
 	}
 	t.Run("Happy Path", func(t *testing.T) {
-		payload = []byte(`{"email": "admin@admin.com", "password": "admin"}`)
-		req, err := http.NewRequest("POST", "/users/login", bytes.NewBuffer(payload))
+		testPayload := []byte(`{"email": "admin@admin.com", "password": "admin"}`)
+		req, err := http.NewRequest("POST", "/users/login", bytes.NewBuffer(testPayload))
 		if err != nil {
 			t.Errorf("Unexpected error in POST request to /users/login")
 		}

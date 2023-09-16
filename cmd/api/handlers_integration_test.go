@@ -80,6 +80,7 @@ func TestApp_CreateUserIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 		defer resp.Body.Close()
+
 		if resp.StatusCode != http.StatusOK {
 			t.Errorf("Expected status %d, but got %d", http.StatusOK, resp.StatusCode)
 		}
