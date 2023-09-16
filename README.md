@@ -12,9 +12,10 @@ I did my best to not rely on an env so any repo can plug and play this, but you 
 1. Go mod install the repo.
 2. Either create your own postgres instance or use the defaults in the dockerfile
 3. Make migrate_up to run the migrations, requires <a href="https://github.com/golang-migrate/migrate">Go Migrate</a>
-4. Configure your own smtp server in an email.env file, or change the name in the email.env
-5. Make run to run the service
-6. Make test to run the tests
+4. Configure the cors in the main.go file, or an env if you prefer
+5. Configure your own smtp server in an email.env file, or change the name in the email.env
+6. Make run to run the service
+7. Make test to run the tests
 
 
 ## TODO
@@ -35,6 +36,6 @@ I did my best to not rely on an env so any repo can plug and play this, but you 
 - [x] Sending email as password reset
 - [x] Password Reset as background go routine within handler
 - [x] Helper function to recover from panics within background tasks
-- [] Implement CORS
+- [x] Implement CORS
 - [] General cleanup - tests are very verbose and repetitive, I'm okay with that as they're also to document how to use the 
      service but there's also likely a better way
