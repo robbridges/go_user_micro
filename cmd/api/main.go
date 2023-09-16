@@ -19,9 +19,16 @@ func setViper() {
 	}
 }
 
+type Config struct {
+	cors struct {
+		trustedOrigins []string
+	}
+}
+
 type App struct {
 	userModel models.IUserModel
 	emailer   mailer.EmailService
+	Config    Config
 	wg        sync.WaitGroup
 }
 
@@ -37,5 +44,7 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 	}
+	// unless more granular control is needed, we can set the cors trusted origins to all
+	app.Config.cors.trustedOrigins = []string{"*"}
 
 }

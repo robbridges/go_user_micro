@@ -39,3 +39,78 @@ func TestRecoverPanicMiddleware(t *testing.T) {
 		t.Errorf("Expected response body '%s', but got '%s'", expectedBody, rr.Body.String())
 	}
 }
+
+func TestEnableCORS(t *testing.T) {
+	// Create a new instance of your App struct with the desired CORS configuration.
+	app := App{
+		Config: Config{
+			cors: struct {
+				trustedOrigins []string
+			}{
+				trustedOrigins: []string{"http://localhost:3000"},
+			},
+		},
+	}
+
+	// Create a Chi router and apply the enableCORS middleware.
+	r := chi.NewRouter()
+	r.Use(app.enableCORS)
+
+	// Define a sample route and handler.
+	r.Route("/some-resource", func(r chi.Router) {
+		r.MethodFunc(http.MethodOptions, "/", func(w http.ResponseWriter, r *http.Request) {
+			// Your sample handler logic here for OPTIONS requests.
+			w.WriteHeader(http.StatusOK)
+		})
+		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+			// Your sample handler logic here for GET requests.
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("Response from /some-resource"))
+		})
+	})
+
+	t.Run("HappyPath", func(t *testing.T) {
+		// Create an HTTP request to simulate a cross-origin request from an allowed origin.
+		req := httptest.NewRequest(http.MethodOptions, "http://localhost:8080/some-resource", nil)
+		req.Header.Set("Origin", "http://localhost:3000") // Set the trusted origin.
+
+		// Create an HTTP response recorder to capture the response.
+		rec := httptest.NewRecorder()
+
+		// Serve the request through the Chi router.
+		r.ServeHTTP(rec, req)
+
+		// Verify the response. It should not have a CORS error status code.
+		if rec.Code != http.StatusOK { // Adjust this based on your actual expected status code.
+			t.Errorf("Expected status code %d, got %d", http.StatusOK, rec.Code)
+		}
+	})
+
+	t.Run("SadPath", func(t *testing.T) {
+		// Create an HTTP request to simulate a cross-origin request from a disallowed origin.
+		req := httptest.NewRequest(http.MethodOptions, "http://localhost:8080/some-resource", nil)
+		req.Header.Set("Origin", "http://example.com") // Set an origin not in the trusted list.
+
+		// Create an HTTP response recorder to capture the response.
+		rec := httptest.NewRecorder()
+
+		// Serve the request through the Chi router.
+		r.ServeHTTP(rec, req)
+
+		// Verify the response. It should have a CORS error status code (403 Forbidden).
+		if rec.Code != http.StatusForbidden { // Expect a 403 Forbidden status code.
+			t.Errorf("Expected CORS error status code %d, got %d", http.StatusForbidden, rec.Code)
+		}
+
+		// Verify the CORS headers in the response.
+		expectedHeaders := map[string]string{
+			"Access-Control-Allow-Origin": "http://example.com", // Should match the request origin.
+			// Include other expected CORS headers for the sad path as needed.
+		}
+		for key, value := range expectedHeaders {
+			if rec.Header().Get(key) != value {
+				t.Errorf("Expected header %s: %s, got %s", key, value, rec.Header().Get(key))
+			}
+		}
+	})
+}

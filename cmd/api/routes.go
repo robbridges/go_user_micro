@@ -10,6 +10,7 @@ func (app *App) SetRoutes() http.Handler {
 
 	//middleware
 	r.Use(app.recoverPanic)
+	r.Use(app.enableCORS)
 
 	r.Get("/", app.HandleHome)
 	r.Post("/users", app.CreateUser)

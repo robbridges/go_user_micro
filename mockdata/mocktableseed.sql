@@ -8,4 +8,5 @@ CREATE TABLE IF NOT EXISTS users (
      password_reset_salt text
 );
 
-INSERT INTO users (password_hash, email, created_at, password_reset_token, password_reset_expires, password_reset_salt) VALUES ('$2a$10$m2RvoCSnhAMGZggN1SPPsOwlSC8Ne0EX.wi7EHK2/pKKmoOmDQsUe', 'admin@localhost', now(), 'testhash', now(), 'testsalt');
+INSERT INTO users (password_hash, email, created_at, password_reset_token, password_reset_expires, password_reset_salt)
+VALUES ('$2a$10$m2RvoCSnhAMGZggN1SPPsOwlSC8Ne0EX.wi7EHK2/pKKmoOmDQsUe', 'admin@localhost', now(), 'testhash', now(), 'testsalt');
