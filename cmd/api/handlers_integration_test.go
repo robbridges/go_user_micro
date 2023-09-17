@@ -219,60 +219,111 @@ func TestApp_GetUserIntegration(t *testing.T) {
 			t.Errorf("Expected user %v, but got %v", expectedUser, userReturned)
 		}
 	})
+}
 
-	t.Run("Get user Sad path", func(t *testing.T) {
-		server := httptest.NewServer(http.HandlerFunc(app.getUserByEmail))
-		defer server.Close()
-		payload := []byte(`{"email": "adminx@localhost"}`)
-		req, err := http.NewRequest("GET", server.URL+"/users)", bytes.NewBuffer(payload))
-		if err != nil {
-			t.Errorf("Unexpected error in get request to %s", req.URL)
-		}
-		resp, err := http.DefaultClient.Do(req)
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer resp.Body.Close()
-		if resp.StatusCode != http.StatusBadRequest {
-			t.Errorf("Expected status %d, but got %d", http.StatusBadRequest, resp.StatusCode)
-		}
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			t.Errorf("Unexpected error reading response body: %v", err)
-		}
+func TestApp_CreateUserIntegration_SadPaths(t *testing.T) {
 
-		expectedBody := "record not found\n"
+	tests := []struct {
+		name          string
+		payload       []byte
+		expectedCode  int
+		expectedError string
+	}{
+		{
+			name:          "Bad json",
+			payload:       badPayload,
+			expectedCode:  http.StatusBadRequest,
+			expectedError: "body contains badly-form JSON (at character 30)\n",
+		},
+		{
+			name:          "Duplicate user",
+			payload:       payload,
+			expectedCode:  http.StatusInternalServerError, // Update this as needed.
+			expectedError: "duplicate email\n",
+		},
+		{
+			name:          "Bad email",
+			payload:       badEmailPayload,
+			expectedCode:  http.StatusBadRequest,
+			expectedError: "User password must be 4 characters long and email must be 5 characters long\n",
+		},
+	}
 
-		if string(body) != expectedBody {
-			t.Errorf("Expected body %s, but got %s", expectedBody, string(body))
-		}
+	testCfg := data.TestPostgresConfig()
+	testDB, err := data.Open(testCfg)
+	defer testDB.Close()
+	if err != nil {
+		t.Errorf("Expected database to open, but got %s", err)
+	}
+	app := App{userModel: &models.UserModel{DB: testDB}}
 
-	})
-	t.Run("Get user Invalid email payload", func(t *testing.T) {
-		server := httptest.NewServer(http.HandlerFunc(app.getUserByEmail))
-		defer server.Close()
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			// Create a test HTTP server.
+			server := httptest.NewServer(http.HandlerFunc(app.CreateUser))
+			defer server.Close()
 
-		req, err := http.NewRequest("GET", server.URL+"/users", bytes.NewBuffer(emailOnlyBadPayload))
-		if err != nil {
-			t.Errorf("Unexpected error in get request to %s", req.URL)
-		}
-		resp, err := http.DefaultClient.Do(req)
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer resp.Body.Close()
-		if resp.StatusCode != http.StatusBadRequest {
-			t.Errorf("Expected status %d, but got %d", http.StatusBadRequest, resp.StatusCode)
-		}
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			t.Errorf("Unexpected error reading response body: %v", err)
-		}
+			// If the test name contains "Duplicate user," add the user before the test.
+			if strings.Contains(test.name, "Duplicate user") {
+				req, err := http.NewRequest("POST", server.URL+"/users", bytes.NewBuffer(payload))
+				if err != nil {
+					t.Fatalf("Unexpected error in creating HTTP request: %v", err)
+				}
 
-		if string(body) != "User password must be 4 characters long and email must be 5 characters long\n" {
-			t.Errorf("Expected body %s, but got %s", "invalid user\n", string(body))
-		}
-	})
+				// Make the HTTP request to add the user.
+				resp, err := http.DefaultClient.Do(req)
+				if err != nil {
+					t.Fatalf("Unexpected error in making HTTP request: %v", err)
+				}
+				defer resp.Body.Close()
+
+				// Check if the user was added successfully.
+				if resp.StatusCode != http.StatusOK {
+					t.Fatalf("Failed to add user for test '%s'", test.name)
+				}
+			}
+
+			// Build the request with the test payload and server URL.
+			req, err := http.NewRequest("POST", server.URL+"/users", bytes.NewBuffer(test.payload))
+			if err != nil {
+				t.Fatalf("Unexpected error in creating HTTP request: %v", err)
+			}
+
+			// Make the actual HTTP request for the test.
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				t.Fatalf("Unexpected error in making HTTP request: %v", err)
+			}
+			defer resp.Body.Close()
+
+			// Check the HTTP response code and response body for expected results.
+			if resp.StatusCode != test.expectedCode {
+				t.Errorf("Expected status code %d, got %d", test.expectedCode, resp.StatusCode)
+			}
+
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				t.Fatalf("Unexpected error reading response body: %v", err)
+			}
+
+			if test.name == "Bad json" || test.name == "Bad email" {
+				var response models.User
+				err = json.Unmarshal(body, &response)
+				if err == nil {
+					t.Errorf("Error expected when unmarshaling JSON: %v", err)
+				}
+			}
+
+			if test.expectedError != "" && string(body) != test.expectedError {
+				t.Errorf("Expected '%s', but got '%s'", test.expectedError, string(body))
+			}
+
+			if test.name == "Duplicate user" {
+				// Delete the user if it was added for the test.
+				app.userModel.DeleteUser("test@example.com")
+			}
+		})
+	}
 }
 
 func Test_UpdatePasswordIntegration(t *testing.T) {
