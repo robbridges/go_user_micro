@@ -152,9 +152,12 @@ the_lonely_road/cmd/api/server.go:42.17,44.4 1 0
 the_lonely_road/cmd/api/server.go:46.3,51.23 3 0
 the_lonely_road/cmd/api/server.go:54.2,56.16 3 0
 the_lonely_road/cmd/api/server.go:56.16,58.3 1 0
-the_lonely_road/cmd/api/server.go:59.2,70.16 9 0
-the_lonely_road/cmd/api/server.go:70.16,72.3 1 0
-the_lonely_road/cmd/api/server.go:73.2,73.12 1 0
+the_lonely_road/cmd/api/server.go:59.2,61.15 2 0
+the_lonely_road/cmd/api/server.go:61.15,62.36 1 0
+the_lonely_road/cmd/api/server.go:62.36,64.4 1 0
+the_lonely_road/cmd/api/server.go:67.2,75.16 7 0
+the_lonely_road/cmd/api/server.go:75.16,77.3 1 0
+the_lonely_road/cmd/api/server.go:78.2,78.12 1 0
 the_lonely_road/models/users.go:42.56,44.16 2 1
 the_lonely_road/models/users.go:44.16,47.3 1 0
 the_lonely_road/models/users.go:48.2,48.33 1 1

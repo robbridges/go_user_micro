@@ -33,7 +33,7 @@ func (app *App) Serve() error {
 			"signal": s.String(),
 		})
 
-		// in flight requests have a 30 second grace period
+		// in flight requests have a 30-second grace period
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 
 		defer cancel()
@@ -58,13 +58,18 @@ func (app *App) Serve() error {
 	}
 	fmt.Println("Connected to database")
 
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			fmt.Println("Error closing server:", err)
+		}
+	}()
+
 	mailCfg := mailer.DefaultSMTPConfig()
-	mailer := mailer.NewEmailService(mailCfg)
+	appMailer := mailer.NewEmailService(mailCfg)
 	app.userModel = &models.UserModel{
 		DB: db,
 	}
-	app.emailer = mailer
+	app.emailer = appMailer
 	fmt.Println("Server running on port 8080")
 	err = svr.ListenAndServe()
 	if err != nil {
