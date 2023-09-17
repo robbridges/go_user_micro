@@ -130,7 +130,7 @@ func TestUserModelMock_Authenticate(t *testing.T) {
 		Password:  "mockpassword",
 		CreatedAt: time.Now(),
 	}
-	// need to get acopy of the plaintext before the hash is created
+	// need to get a copy of the plaintext before the hash is created
 	passwordBefore := mockUser.Password
 	userModel := UserModelMock{}
 	err := userModel.Insert(&mockUser)
