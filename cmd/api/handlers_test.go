@@ -128,10 +128,9 @@ func TestApp_CreateUser_SadPaths(t *testing.T) {
 			expectedError: "User password must be 4 characters long and email must be 5 characters long\n",
 		},
 	}
-
+	app := App{userModel: &models.UserModelMock{DB: []*models.User{}}}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			app := App{userModel: &models.UserModelMock{DB: []*models.User{}}}
 
 			if strings.Contains(test.name, "Duplicate user") {
 				// Add the user before the test if the test name contains "Duplicate user."
@@ -170,9 +169,14 @@ func TestApp_CreateUser_SadPaths(t *testing.T) {
 			// Check the mock DB size if the test case name is "Duplicate user."
 			if test.name == "Duplicate user" {
 				app.checkMockDBSize(t, 1)
+				err = app.userModel.DeleteUser("test@example.com")
+				if err != nil {
+					t.Errorf("Unexpected error in deleting user: %v", err)
+				}
 			} else {
 				app.checkMockDBSize(t, 0)
 			}
+
 		})
 	}
 }
@@ -608,7 +612,7 @@ func TestApp_Authenticate_SadPaths(t *testing.T) {
 		},
 		{
 			name:             "Bad JSON",
-			payload:          []byte(badPayload),
+			payload:          badPayload,
 			expectedCode:     http.StatusBadRequest,
 			expectedResponse: "body contains badly-form JSON (at character 30)\n",
 		},
