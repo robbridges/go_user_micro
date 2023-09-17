@@ -86,13 +86,13 @@ func (es *EmailService) setFrom(msg *mail.Message, email Email) {
 
 }
 
-func (es *EmailService) ForgotPassword(to, resertURL string) error {
+func (es *EmailService) ForgotPassword(to, resetURL string) error {
 	email := Email{
 		Subject:   "Reset your password",
 		To:        to,
-		Plaintext: "To reset your password, please visit the following link: " + resertURL,
-		HTML: `<p> To reset your password, please visit the following link: <a href="` + resertURL + `">` +
-			resertURL + `</a></p>`,
+		Plaintext: "To reset your password, please visit the following link: " + resetURL,
+		HTML: `<p> To reset your password, please visit the following link: <a href="` + resetURL + `">` +
+			resetURL + `</a></p>`,
 	}
 	err := es.SendEmail(email)
 	if err != nil {
