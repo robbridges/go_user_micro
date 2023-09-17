@@ -12,7 +12,7 @@ import (
 
 func TestNewEmailService(t *testing.T) {
 	mockConfig := SMTPConfig{
-		Host:     "testhost",
+		Host:     "testHost",
 		Port:     1,
 		Username: "rob",
 		Password: "secret",
@@ -148,16 +148,16 @@ func TestEmailService_ForgotPassword(t *testing.T) {
 	}
 
 	emailService := NewEmailService(cfg)
-	token, _, err := token.GenerateTokenAndSalt(32, 16)
+	passwordToken, _, err := token.GenerateTokenAndSalt(32, 16)
 	if err != nil {
 		t.Errorf("Error generating token: %v", err)
 	}
-	url := fmt.Sprintf("localhost:8080/users/password/reset?token=%s", token)
+	url := fmt.Sprintf("localhost:8080/users/password/reset?token=%s", passwordToken)
 	err = emailService.ForgotPassword("admin@admin.com", url)
 	if err != nil {
 		t.Errorf("Error sending email: %v", err)
 	}
-	if !strings.Contains(url, token) {
+	if !strings.Contains(url, passwordToken) {
 		t.Errorf("Token should be in URL")
 	}
 }
