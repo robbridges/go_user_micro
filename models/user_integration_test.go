@@ -1,7 +1,6 @@
 package models
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 	"the_lonely_road/data"
@@ -27,7 +26,7 @@ func TestUserModel_Insert(t *testing.T) {
 	}
 	defer func() {
 		if err := db.Close(); err != nil {
-			fmt.Println("Error closing server:", err)
+			t.Error("Error closing server:", err)
 		}
 	}()
 
@@ -77,7 +76,7 @@ func TestUserModel_GetByEmail(t *testing.T) {
 	}
 	defer func() {
 		if err := db.Close(); err != nil {
-			fmt.Println("Error closing server:", err)
+			t.Error("Error closing server:", err)
 		}
 	}()
 
@@ -124,7 +123,7 @@ func TestUserModel_UpdatePassword(t *testing.T) {
 	}
 	defer func() {
 		if err := db.Close(); err != nil {
-			fmt.Println("Error closing server:", err)
+			t.Errorf("Error closing server: %s", err)
 		}
 	}()
 	userModel := &UserModel{DB: db}
@@ -175,7 +174,7 @@ func TestUserModel_DeleteUser(t *testing.T) {
 
 	defer func() {
 		if err := db.Close(); err != nil {
-			fmt.Println("Error closing server:", err)
+			t.Errorf("Error closing server: %s", err)
 		}
 	}()
 
@@ -224,7 +223,7 @@ func TestUserModel_Authenticate(t *testing.T) {
 
 	defer func() {
 		if err := db.Close(); err != nil {
-			fmt.Println("Error closing server:", err)
+			t.Errorf("Error closing server: %s", err)
 		}
 	}()
 
@@ -289,7 +288,7 @@ func TestUserModel_EnterPasswordHash(t *testing.T) {
 
 	defer func() {
 		if err := db.Close(); err != nil {
-			fmt.Println("Error closing server:", err)
+			t.Errorf("Error closing server: %s", err)
 		}
 	}()
 
@@ -352,7 +351,7 @@ func TestUserModel_ConsumePasswordReset(t *testing.T) {
 
 	defer func() {
 		if err := db.Close(); err != nil {
-			fmt.Println("Error closing server:", err)
+			t.Errorf("Error closing server: %s", err)
 		}
 	}()
 
