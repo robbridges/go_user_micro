@@ -1,16 +1,13 @@
 package models
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 	"the_lonely_road/data"
 	"the_lonely_road/token"
 	"time"
 )
-
-type App struct {
-	userModel *UserModel
-}
 
 func TestUserModel_Insert(t *testing.T) {
 	mockUser := User{
@@ -28,7 +25,11 @@ func TestUserModel_Insert(t *testing.T) {
 	if err != nil {
 		t.Errorf("Expected no error, got %s", err)
 	}
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			fmt.Println("Error closing server:", err)
+		}
+	}()
 
 	t.Run("Insert User happy path", func(t *testing.T) {
 
@@ -74,7 +75,11 @@ func TestUserModel_GetByEmail(t *testing.T) {
 	if err != nil {
 		t.Errorf("Expected no error, got %s", err)
 	}
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			fmt.Println("Error closing server:", err)
+		}
+	}()
 
 	userModel := &UserModel{DB: db}
 	t.Run("User Found", func(t *testing.T) {
@@ -117,7 +122,11 @@ func TestUserModel_UpdatePassword(t *testing.T) {
 	if err != nil {
 		t.Errorf("Expected no error, got %s", err)
 	}
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			fmt.Println("Error closing server:", err)
+		}
+	}()
 	userModel := &UserModel{DB: db}
 	t.Run("Update Password happy path", func(t *testing.T) {
 		userToInsert := User{
@@ -163,7 +172,13 @@ func TestUserModel_DeleteUser(t *testing.T) {
 	if err != nil {
 		t.Errorf("Expected no error, got %s", err)
 	}
-	defer db.Close()
+
+	defer func() {
+		if err := db.Close(); err != nil {
+			fmt.Println("Error closing server:", err)
+		}
+	}()
+
 	userModel := &UserModel{DB: db}
 
 	t.Run("Delete User happy path", func(t *testing.T) {
@@ -171,8 +186,11 @@ func TestUserModel_DeleteUser(t *testing.T) {
 			Email:    "deleteuser@localhost",
 			Password: "veryinsecurepassword",
 		}
-		userModel.Insert(&userToDelete)
-		err := userModel.DeleteUser(userToDelete.Email)
+		err := userModel.Insert(&userToDelete)
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
+		}
+		err = userModel.DeleteUser(userToDelete.Email)
 		if err != nil {
 			t.Errorf("Expected no error, got %s", err)
 		}
@@ -203,7 +221,13 @@ func TestUserModel_Authenticate(t *testing.T) {
 	if err != nil {
 		t.Errorf("Expected no error, got %s", err)
 	}
-	defer db.Close()
+
+	defer func() {
+		if err := db.Close(); err != nil {
+			fmt.Println("Error closing server:", err)
+		}
+	}()
+
 	userModel := &UserModel{DB: db}
 
 	t.Run("Authenticate happy path", func(t *testing.T) {
@@ -211,18 +235,24 @@ func TestUserModel_Authenticate(t *testing.T) {
 			Email:    "authenticateuser@localhost",
 			Password: "veryinsecurepassword",
 		}
-		passwwordBeforeHash := userToDelete.Password
-		userModel.Insert(&userToDelete)
-		user, err := userModel.Authenticate(userToDelete.Email, passwwordBeforeHash)
+		passwordBeforeHash := userToDelete.Password
+		err = userModel.Insert(&userToDelete)
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
+		}
+		user, err := userModel.Authenticate(userToDelete.Email, passwordBeforeHash)
 		if err != nil {
 			t.Errorf("Expected no error, got %s", err)
 		}
 		if user.Email != userToDelete.Email {
 			t.Errorf("Expected user to be returned")
 		}
-		userModel.DeleteUser(userToDelete.Email)
-
+		err = userModel.DeleteUser(userToDelete.Email)
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
+		}
 	})
+
 	t.Run("invalid password", func(t *testing.T) {
 		userToDelete := User{
 			Email:    "authenticateuser@localhost",
@@ -256,7 +286,13 @@ func TestUserModel_EnterPasswordHash(t *testing.T) {
 	if err != nil {
 		t.Errorf("Expected no error, got %s", err)
 	}
-	defer db.Close()
+
+	defer func() {
+		if err := db.Close(); err != nil {
+			fmt.Println("Error closing server:", err)
+		}
+	}()
+
 	userModel := &UserModel{DB: db}
 
 	t.Run("EnterPasswordHash happy path", func(t *testing.T) {
@@ -275,7 +311,7 @@ func TestUserModel_EnterPasswordHash(t *testing.T) {
 		}
 
 		hashedToken := token.HashToken(passwordToken, salt)
-		err = userModel.EnterPasswordHash(userToDelete.Email, string(hashedToken), string(salt))
+		err = userModel.EnterPasswordHash(userToDelete.Email, hashedToken, salt)
 		if err != nil {
 			t.Errorf("Expected no error, got %s", err)
 		}
@@ -287,7 +323,7 @@ func TestUserModel_EnterPasswordHash(t *testing.T) {
 		if user.PasswordResetHashToken != hashedToken {
 			t.Errorf("got %s, want %s", user.PasswordResetHashToken, hashedToken)
 		}
-		if user.PasswordResetSalt != string(salt) {
+		if user.PasswordResetSalt != salt {
 			t.Errorf("got %s, want %s", user.PasswordResetSalt, salt)
 		}
 		err = userModel.DeleteUser(userToDelete.Email)
@@ -300,7 +336,7 @@ func TestUserModel_EnterPasswordHash(t *testing.T) {
 		if err != nil {
 			t.Errorf("Expected no error, got %s", err)
 		}
-		err = userModel.EnterPasswordHash("notfound", string(passwordToken), string(salt))
+		err = userModel.EnterPasswordHash("notfound", passwordToken, salt)
 		if err == nil {
 			t.Errorf("Expected error, got nil")
 		}
@@ -313,7 +349,13 @@ func TestUserModel_ConsumePasswordReset(t *testing.T) {
 	if err != nil {
 		t.Errorf("Expected no error, got %s", err)
 	}
-	defer db.Close()
+
+	defer func() {
+		if err := db.Close(); err != nil {
+			fmt.Println("Error closing server:", err)
+		}
+	}()
+
 	userModel := &UserModel{DB: db}
 	t.Run("Happy path", func(t *testing.T) {
 		userToDelete := User{
@@ -331,7 +373,7 @@ func TestUserModel_ConsumePasswordReset(t *testing.T) {
 		}
 
 		hashedToken := token.HashToken(passwordToken, salt)
-		err = userModel.EnterPasswordHash(userToDelete.Email, string(hashedToken), string(salt))
+		err = userModel.EnterPasswordHash(userToDelete.Email, hashedToken, salt)
 		if err != nil {
 			t.Errorf("Expected no error, got %s", err)
 		}
