@@ -65,7 +65,10 @@ func TestEnableCORS(t *testing.T) {
 		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 			// Your sample handler logic here for GET requests.
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("Response from /some-resource"))
+			_, err := w.Write([]byte("Response from /some-resource"))
+			if err != nil {
+				t.Errorf("Error writing response: %s", err)
+			}
 		})
 	})
 
@@ -89,7 +92,7 @@ func TestEnableCORS(t *testing.T) {
 	t.Run("SadPath", func(t *testing.T) {
 		// Create an HTTP request to simulate a cross-origin request from a disallowed origin.
 		req := httptest.NewRequest(http.MethodOptions, "http://localhost:8080/some-resource", nil)
-		req.Header.Set("Origin", "http://example.com") // Set an origin not in the trusted list.
+		req.Header.Set("Origin", "https://example.com") // Set an origin not in the trusted list.
 
 		// Create an HTTP response recorder to capture the response.
 		rec := httptest.NewRecorder()
@@ -104,7 +107,7 @@ func TestEnableCORS(t *testing.T) {
 
 		// Verify the CORS headers in the response.
 		expectedHeaders := map[string]string{
-			"Access-Control-Allow-Origin": "http://example.com", // Should match the request origin.
+			"Access-Control-Allow-Origin": "https://example.com", // Should match the request origin.
 			// Include other expected CORS headers for the sad path as needed.
 		}
 		for key, value := range expectedHeaders {

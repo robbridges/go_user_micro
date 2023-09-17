@@ -41,7 +41,7 @@ func (app *App) enableCORS(next http.Handler) http.Handler {
 
 			if !allowed {
 				// Origin is not in the trusted list, reject the request with a 403 Forbidden status.
-				w.Header().Set("Access-Control-Allow-Origin", "http://example.com") // Set the disallowed origin.
+				w.Header().Set("Access-Control-Allow-Origin", "https://example.com") // Set the disallowed origin.
 				http.Error(w, "Forbidden", http.StatusForbidden)
 				return
 			}
