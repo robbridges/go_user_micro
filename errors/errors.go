@@ -8,4 +8,5 @@ const (
 	PasswordResetEmail   = "Password reset email sent, please check your inbox"
 	InvalidToken         = "Invalid Token"
 	PasswordResetExpired = "Password reset token has expired"
+	JsonWriteError       = "Error writing JSON"
 )

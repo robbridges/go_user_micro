@@ -16,17 +16,21 @@ type jsonPayload struct {
 	Data string `json:"data"`
 }
 
-// more or less make sure the server can receieve requests when running
-func (app *App) HandleHome(w http.ResponseWriter, r *http.Request) {
+// HandleHome more or less make sure the server can  receive requests
+func (app *App) HandleHome(w http.ResponseWriter, _ *http.Request) {
 	mockPayload := jsonPayload{
 		Name: "User greet",
 		Data: "Hello user",
 	}
-	app.writeJSON(w, http.StatusOK, &mockPayload)
+	err := app.writeJSON(w, http.StatusOK, &mockPayload)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 }
 
-// create a user
+// CreateUser creates and implements a new user
 func (app *App) CreateUser(w http.ResponseWriter, r *http.Request) {
 	var payload struct {
 		Email    string
@@ -58,16 +62,20 @@ func (app *App) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := JWT.GenerateJWT(int(user.ID))
+	jwt, err := JWT.GenerateJWT(int(user.ID))
 	if err != nil {
 		http.Error(w, errors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
 
 	// Set the token in a cookie
-	JWT.SetAuthCookie(w, token)
+	JWT.SetAuthCookie(w, jwt)
 
-	app.writeJSON(w, http.StatusOK, &user)
+	err = app.writeJSON(w, http.StatusOK, &user)
+	if err != nil {
+		http.Error(w, errors.JsonWriteError, http.StatusInternalServerError)
+		return
+	}
 }
 
 // get user by email
@@ -92,7 +100,11 @@ func (app *App) getUserByEmail(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	app.writeJSON(w, 200, &user)
+	err = app.writeJSON(w, 200, &user)
+	if err != nil {
+		http.Error(w, errors.JsonWriteError, http.StatusInternalServerError)
+		return
+	}
 }
 
 // update user password
@@ -137,7 +149,11 @@ func (app *App) updateUserPassword(w http.ResponseWriter, r *http.Request) {
 		}
 	})
 
-	app.writeJSON(w, 200, errors.PasswordResetEmail)
+	err = app.writeJSON(w, 200, errors.PasswordResetEmail)
+	if err != nil {
+		http.Error(w, errors.JsonWriteError, http.StatusInternalServerError)
+		return
+	}
 }
 
 func (app *App) ProcessPasswordReset(w http.ResponseWriter, r *http.Request) {
@@ -179,7 +195,11 @@ func (app *App) ProcessPasswordReset(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	app.writeJSON(w, 200, "Password updated successfully")
+	err = app.writeJSON(w, 200, "Password updated successfully")
+	if err != nil {
+		http.Error(w, errors.JsonWriteError, http.StatusInternalServerError)
+		return
+	}
 
 }
 
@@ -207,14 +227,18 @@ func (app *App) Authenticate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := JWT.GenerateJWT(int(user.ID))
+	jwt, err := JWT.GenerateJWT(int(user.ID))
 	if err != nil {
 		http.Error(w, errors.InternalServerError, http.StatusInternalServerError)
 		return
 	}
 
 	// Set the token in a cookie
-	JWT.SetAuthCookie(w, token)
+	JWT.SetAuthCookie(w, jwt)
 
-	app.writeJSON(w, 200, &user)
+	err = app.writeJSON(w, 200, &user)
+	if err != nil {
+		http.Error(w, errors.JsonWriteError, http.StatusInternalServerError)
+		return
+	}
 }
