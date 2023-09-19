@@ -51,8 +51,7 @@ func (app *App) Serve() error {
 		shutDownError <- nil
 	}()
 
-	cfg := data.DefaultPostgresConfig()
-	db, err := data.Open(cfg)
+	db, err := data.OpenDSN("DSN_DB")
 	if err != nil {
 		return err
 	}
