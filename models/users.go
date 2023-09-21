@@ -299,6 +299,7 @@ func (mockUM *UserModelMock) ConsumePasswordReset(email string) error {
 	if err != nil {
 		return err
 	}
+	// reset the fields to default values
 	user.PasswordResetExpiry = time.Time{}
 	user.PasswordResetHashToken = ""
 	user.PasswordResetSalt = ""
