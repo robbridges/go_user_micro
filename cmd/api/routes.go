@@ -17,12 +17,12 @@ func (app *App) SetRoutes() http.Handler {
 	r.Group(func(r chi.Router) {
 		r.Use(cookieMiddleware)
 		r.Get("/", app.HandleHome)
-		r.Post("/users", app.CreateUser)
-		r.Patch("/users", app.updateUserPassword)
 		r.Get("/users", app.getUserByEmail)
 	})
 
+	r.Post("/users", app.CreateUser)
 	r.Post("/users/login", app.Authenticate)
+	r.Patch("/users", app.updateUserPassword)
 	r.Post("/users/password/reset", app.ProcessPasswordReset)
 	return r
 }
