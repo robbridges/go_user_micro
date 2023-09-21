@@ -119,17 +119,15 @@ func TestEnableCORS(t *testing.T) {
 }
 
 func TestRequireCookieMiddleware_HappyPath(t *testing.T) {
-	// Create a test App instance.
+
 	app := &App{}
 
-	// Create a new Chi router with the middleware and a handler that always returns OK.
 	r := chi.NewRouter()
 	r.Use(app.RequireCookieMiddleware)
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	// Create a test request with the "auth_token" cookie.
 	reqWithCookie := httptest.NewRequest("GET", "/", nil)
 	reqWithCookie.AddCookie(&http.Cookie{
 		Name:  "auth_token",
@@ -137,14 +135,16 @@ func TestRequireCookieMiddleware_HappyPath(t *testing.T) {
 	})
 
 	// Create a recorder to capture the response.
-	recWithCookie := httptest.NewRecorder()
+	rr := httptest.NewRecorder()
 
-	// Serve the request using the router.
-	r.ServeHTTP(recWithCookie, reqWithCookie)
+	r.ServeHTTP(rr, reqWithCookie)
 
-	// Check the response status code for the case with the cookie.
-	if recWithCookie.Code != http.StatusOK {
-		t.Errorf("Expected status OK, got %d", recWithCookie.Code)
+	if rr.Code != http.StatusOK {
+		t.Errorf("Expected status OK, got %d", rr.Code)
+	}
+
+	if rr.Body.String() != "" {
+		t.Errorf("Expected empty body, got %s", rr.Body.String())
 	}
 }
 
@@ -159,17 +159,20 @@ func TestRequireCookieMiddleware_SadPath(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	// Create a test request without the "auth_token" cookie.
 	reqWithoutCookie := httptest.NewRequest("GET", "/", nil)
 
-	// Create a recorder to capture the response.
-	recWithoutCookie := httptest.NewRecorder()
+	rr := httptest.NewRecorder()
 
-	// Serve the request using the router.
-	r.ServeHTTP(recWithoutCookie, reqWithoutCookie)
+	r.ServeHTTP(rr, reqWithoutCookie)
 
-	// Check the response status code for the case without the cookie.
-	if recWithoutCookie.Code != http.StatusUnauthorized {
-		t.Errorf("Expected status Unauthorized, got %d", recWithoutCookie.Code)
+	if rr.Code != http.StatusUnauthorized {
+		t.Errorf("Expected status Unauthorized, got %d", rr.Code)
 	}
+
+	want := "Please sign in to use this resource\n"
+
+	if rr.Body.String() != want {
+		t.Errorf("Expected body '%s', got '%s'", want, rr.Body.String())
+	}
+
 }
