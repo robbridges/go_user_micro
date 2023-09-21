@@ -12,10 +12,8 @@ func (app *App) SetRoutes() http.Handler {
 	r.Use(app.recoverPanic)
 	r.Use(app.enableCORS)
 
-	cookieMiddleware := app.RequireCookieMiddleware
-
 	r.Group(func(r chi.Router) {
-		r.Use(cookieMiddleware)
+		r.Use(app.RequireCookieMiddleware)
 		r.Get("/", app.HandleHome)
 		r.Get("/users", app.getUserByEmail)
 	})
