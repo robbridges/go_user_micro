@@ -30,13 +30,11 @@ func HashToken(token, salt string) string {
 	// Decode Base64-encoded token and salt back to bytes
 	tokenBytes, err := base64.URLEncoding.DecodeString(token)
 	if err != nil {
-		// Handle decoding error
 		return ""
 	}
 
 	saltBytes, err := base64.URLEncoding.DecodeString(salt)
 	if err != nil {
-		// Handle decoding error
 		return ""
 	}
 
@@ -50,17 +48,18 @@ func HashToken(token, salt string) string {
 
 	return hash
 }
+
 func IsValidToken(userProvidedToken, storedHashedToken, salt string) bool {
 	// Decode Base64-encoded user-provided token and salt back to bytes
 	userTokenBytes, err := base64.URLEncoding.DecodeString(userProvidedToken)
 	if err != nil {
-		// Handle decoding error
+
 		return false
 	}
 
 	saltBytes, err := base64.URLEncoding.DecodeString(salt)
 	if err != nil {
-		// Handle decoding error
+
 		return false
 	}
 
