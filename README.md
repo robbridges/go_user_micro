@@ -9,7 +9,7 @@ everyone is free to use this service if they would like, it is well tested and f
 I did my best to not rely on an env so any repo can plug and play this, but you will need to make email.env file and fill in your own smtp server info.
 
 ## Usage
-1. Go mod install the repo.
+1. Go mod install the repo. You can either run it manually or use the dockerfile
 2. Either create your own postgres instance or use the defaults in the dockerfile
 3. Make migrate_up to run the migrations, requires <a href="https://github.com/golang-migrate/migrate">Go Migrate</a>
 4. Configure the cors in the main.go file, or an env if you prefer
@@ -38,5 +38,6 @@ I did my best to not rely on an env so any repo can plug and play this, but you 
 - [x] Helper function to recover from panics within background tasks
 - [x] Implement CORS
 - [x] General cleanup - tests are very verbose and repetitive, The mock handlers are now table tests, still deciding if I want them all like that.
-
+- [x] Containerize user user
+- [x] 
 
