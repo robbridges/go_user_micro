@@ -58,3 +58,17 @@ func (app *App) enableCORS(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
+
+func (app *App) RequireCookieMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Check if the "auth_token" cookie is present.
+		cookie, err := r.Cookie("auth_token")
+		if err != nil || cookie == nil || cookie.Value == "" {
+			http.Error(w, "Please sign in to use this resource", http.StatusUnauthorized)
+			return
+		}
+
+		// Cookie is present, continue to the next handler.
+		next.ServeHTTP(w, r)
+	})
+}

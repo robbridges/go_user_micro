@@ -12,10 +12,16 @@ func (app *App) SetRoutes() http.Handler {
 	r.Use(app.recoverPanic)
 	r.Use(app.enableCORS)
 
-	r.Get("/", app.HandleHome)
-	r.Post("/users", app.CreateUser)
-	r.Patch("/users", app.updateUserPassword)
-	r.Get("/users", app.getUserByEmail)
+	cookieMiddleware := app.RequireCookieMiddleware
+
+	r.Group(func(r chi.Router) {
+		r.Use(cookieMiddleware)
+		r.Get("/", app.HandleHome)
+		r.Post("/users", app.CreateUser)
+		r.Patch("/users", app.updateUserPassword)
+		r.Get("/users", app.getUserByEmail)
+	})
+
 	r.Post("/users/login", app.Authenticate)
 	r.Post("/users/password/reset", app.ProcessPasswordReset)
 	return r

@@ -24,7 +24,7 @@ services:
 
   app:
     build: .
-    container_name: your-app-name
+    container_name: userService
     depends_on:
       - db
       - test-db

@@ -117,3 +117,59 @@ func TestEnableCORS(t *testing.T) {
 		}
 	})
 }
+
+func TestRequireCookieMiddleware_HappyPath(t *testing.T) {
+	// Create a test App instance.
+	app := &App{}
+
+	// Create a new Chi router with the middleware and a handler that always returns OK.
+	r := chi.NewRouter()
+	r.Use(app.RequireCookieMiddleware)
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	// Create a test request with the "auth_token" cookie.
+	reqWithCookie := httptest.NewRequest("GET", "/", nil)
+	reqWithCookie.AddCookie(&http.Cookie{
+		Name:  "auth_token",
+		Value: "example_token",
+	})
+
+	// Create a recorder to capture the response.
+	recWithCookie := httptest.NewRecorder()
+
+	// Serve the request using the router.
+	r.ServeHTTP(recWithCookie, reqWithCookie)
+
+	// Check the response status code for the case with the cookie.
+	if recWithCookie.Code != http.StatusOK {
+		t.Errorf("Expected status OK, got %d", recWithCookie.Code)
+	}
+}
+
+func TestRequireCookieMiddleware_SadPath(t *testing.T) {
+	// Create a test App instance.
+	app := &App{}
+
+	// Create a new Chi router with the middleware and a handler that always returns OK.
+	r := chi.NewRouter()
+	r.Use(app.RequireCookieMiddleware)
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	// Create a test request without the "auth_token" cookie.
+	reqWithoutCookie := httptest.NewRequest("GET", "/", nil)
+
+	// Create a recorder to capture the response.
+	recWithoutCookie := httptest.NewRecorder()
+
+	// Serve the request using the router.
+	r.ServeHTTP(recWithoutCookie, reqWithoutCookie)
+
+	// Check the response status code for the case without the cookie.
+	if recWithoutCookie.Code != http.StatusUnauthorized {
+		t.Errorf("Expected status Unauthorized, got %d", recWithoutCookie.Code)
+	}
+}
