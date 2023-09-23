@@ -242,3 +242,17 @@ func (app *App) Authenticate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
+func (app *App) SignOut(w http.ResponseWriter, r *http.Request) {
+	cookie, err := r.Cookie("auth_token")
+	if err != nil {
+		http.Error(w, errors.Unauthorized, http.StatusUnauthorized)
+		return
+	}
+	JWT.DeleteAuthCookie(w, cookie)
+	err = app.writeJSON(w, 200, "Successfully signed out")
+	if err != nil {
+		http.Error(w, errors.JsonWriteError, http.StatusInternalServerError)
+		return
+	}
+}

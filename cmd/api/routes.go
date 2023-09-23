@@ -22,5 +22,6 @@ func (app *App) SetRoutes() http.Handler {
 	r.Post("/users/login", app.Authenticate)
 	r.Patch("/users", app.updateUserPassword)
 	r.Post("/users/password/reset", app.ProcessPasswordReset)
+	r.Post("/users/logout", app.SignOut)
 	return r
 }

@@ -3,6 +3,7 @@ package JWT
 import (
 	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 func TestGenerateAndValidateJWT(t *testing.T) {
@@ -33,4 +34,29 @@ func TestSetAuthCookie(t *testing.T) {
 		t.Error("setAuthCookie did not set the cookie in the response")
 	}
 
+}
+
+func TestDeleteAuthCookie(t *testing.T) {
+
+	// Create a response recorder to capture the response
+	w := httptest.NewRecorder()
+
+	// Set the cookie
+	token := "auth-token"
+	SetAuthCookie(w, token)
+	cookie := w.Result().Cookies()[0]
+
+	// Check if the cookie is set in the response
+	resp := w.Result()
+	cookieHeader := resp.Header.Get("Set-Cookie")
+	if cookieHeader == "" {
+		t.Error("setAuthCookie did not set the cookie in the response")
+	}
+
+	DeleteAuthCookie(w, cookie)
+	cookie = w.Result().Cookies()[0]
+	// cookie expiration should be set to the past
+	if cookie.Expires.Before(time.Now()) {
+		t.Error("deleteAuthCookie did not set the cookie expiration time to the past")
+	}
 }

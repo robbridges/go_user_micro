@@ -8,4 +8,5 @@ const (
 	InvalidToken         = "Invalid Token"
 	PasswordResetExpired = "Password reset token has expired"
 	JsonWriteError       = "Error writing JSON"
+	Unauthorized         = "Unauthorized"
 )
