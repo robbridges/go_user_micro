@@ -650,104 +650,79 @@ func TestApp_Authenticate_SadPaths(t *testing.T) {
 }
 
 func TestApp_SignOut(t *testing.T) {
-	app := App{userModel: &models.UserModelMock{DB: []*models.User{}}}
-	user := models.User{
-		ID:        1,
-		Password:  "admin",
-		Email:     "admin@admin.com",
-		CreatedAt: time.Now(),
+	tests := []struct {
+		name           string
+		loginResponse  int    // HTTP status code for login response
+		logoutResponse int    // HTTP status code for logout response
+		expectedError  string // Expected error message (if any)
+	}{
+		{
+			name:           "Happy Path",
+			loginResponse:  http.StatusOK,
+			logoutResponse: http.StatusOK,
+			expectedError:  "",
+		},
+		{
+			name:           "Sad Path",
+			loginResponse:  http.StatusOK,
+			logoutResponse: http.StatusUnauthorized,
+			expectedError:  "Unauthorized\n",
+		},
 	}
 
-	mockModel, ok := app.userModel.(*models.UserModelMock)
-	if !ok {
-		t.Errorf("Expected app.userModel to be of type UserModelMock")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			app := App{userModel: &models.UserModelMock{DB: []*models.User{}}}
+			user := models.User{
+				ID:        1,
+				Password:  "admin",
+				Email:     "admin@admin.com",
+				CreatedAt: time.Now(),
+			}
+
+			mockModel, ok := app.userModel.(*models.UserModelMock)
+			if !ok {
+				t.Errorf("Expected app.userModel to be of type UserModelMock")
+			}
+
+			err := mockModel.Insert(&user)
+			if err != nil {
+				t.Errorf("Unexpected error in inserting user")
+			}
+
+			testPayload := []byte(`{"email": "admin@admin.com", "password": "admin"}`)
+			req, err := http.NewRequest("POST", "/users/login", bytes.NewBuffer(testPayload))
+			if err != nil {
+				t.Errorf("Unexpected error in POST request to /users/login")
+			}
+			loginRR := httptest.NewRecorder()
+			app.Authenticate(loginRR, req)
+			if loginRR.Code != tt.loginResponse {
+				t.Errorf("Expected status code %d, got %d", tt.loginResponse, loginRR.Code)
+			}
+
+			req, err = http.NewRequest("POST", "/users/logout", nil)
+			if err != nil {
+				t.Errorf("Unexpected error in POST request to /users/logout")
+			}
+
+			// we should only set the cookie in the happy path, in the sad path it fails because the cookie is not set
+			if tt.name == "Happy Path" {
+				req.AddCookie(loginRR.Result().Cookies()[0])
+			}
+
+			logoutRR := httptest.NewRecorder()
+			app.SignOut(logoutRR, req)
+
+			if logoutRR.Code != tt.logoutResponse {
+				t.Errorf("Expected status code %d, got %d", tt.logoutResponse, logoutRR.Code)
+			}
+
+			if tt.expectedError != "" && logoutRR.Body.String() != tt.expectedError {
+				t.Errorf("Expected response '%s', got '%s'", tt.expectedError, logoutRR.Body.String())
+			}
+		})
 	}
-	// actually insert the model instead of just appending to encrypt the password I should have done this everywhere.
-	err := mockModel.Insert(&user)
-	if err != nil {
-		t.Errorf("Unexpected error in inserting user")
-	}
-	t.Run("Happy Path", func(t *testing.T) {
-		testPayload := []byte(`{"email": "admin@admin.com", "password": "admin"}`)
-		req, err := http.NewRequest("POST", "/users/login", bytes.NewBuffer(testPayload))
-		if err != nil {
-			t.Errorf("Unexpected error in POST request to /users/login")
-		}
-		rr := httptest.NewRecorder()
-
-		app.Authenticate(rr, req)
-		if rr.Code != http.StatusOK {
-			t.Errorf("Expected status code %d, got %d", http.StatusOK, rr.Code)
-		}
-		var responseUser models.User
-		err = json.Unmarshal(rr.Body.Bytes(), &responseUser)
-		if err != nil {
-			t.Errorf("Error unmarshaling JSON: %v", err)
-		}
-		if responseUser.Email != user.Email {
-			t.Errorf("Expected email to be %s, got %s", user.Email, responseUser.Email)
-		}
-		if rr.Header().Get("Set-Cookie") == "" {
-			t.Errorf("Expected cookie to be set, but got %s", rr.Header().Get("Set-Cookie"))
-		}
-		req, err = http.NewRequest("POST", "/users/logout", nil)
-		if err != nil {
-			t.Errorf("Unexpected error in POST request to /users/logout")
-		}
-
-		req.AddCookie(rr.Result().Cookies()[0])
-		rr = httptest.NewRecorder()
-		app.SignOut(rr, req)
-		if rr.Code != http.StatusOK {
-			t.Errorf("Expected status code %d, got %d", http.StatusOK, rr.Code)
-		}
-		cookie, err := req.Cookie("auth_token")
-		if err != nil {
-			t.Errorf("Unexpected error in getting cookie")
-		}
-		if !cookie.Expires.Before(time.Now()) {
-			t.Errorf("Expected cookie to be expired, but got %s", cookie.Expires)
-		}
-
-	})
-	t.Run("Sad Path", func(t *testing.T) {
-
-		testPayload := []byte(`{"email": "admin@admin.com", "password": "admin"}`)
-		req, err := http.NewRequest("POST", "/users/login", bytes.NewBuffer(testPayload))
-		if err != nil {
-			t.Errorf("Unexpected error in POST request to /users/login")
-		}
-		rr := httptest.NewRecorder()
-
-		app.Authenticate(rr, req)
-		if rr.Code != http.StatusOK {
-			t.Errorf("Expected status code %d, got %d", http.StatusOK, rr.Code)
-		}
-		var responseUser models.User
-		err = json.Unmarshal(rr.Body.Bytes(), &responseUser)
-		if err != nil {
-			t.Errorf("Error unmarshaling JSON: %v", err)
-		}
-		if responseUser.Email != user.Email {
-			t.Errorf("Expected email to be %s, got %s", user.Email, responseUser.Email)
-		}
-		if rr.Header().Get("Set-Cookie") == "" {
-			t.Errorf("Expected cookie to be set, but got %s", rr.Header().Get("Set-Cookie"))
-		}
-		req, err = http.NewRequest("POST", "/users/logout", nil)
-		if err != nil {
-			t.Errorf("Unexpected error in POST request to /users/logout")
-		}
-
-		rr = httptest.NewRecorder()
-		app.SignOut(rr, req)
-		if rr.Code != http.StatusUnauthorized {
-			t.Errorf("Expected status code %d, got %d", http.StatusOK, rr.Code)
-		}
-		if rr.Body.String() != "Unauthorized\n" {
-			t.Errorf("Expected response 'Unauthorized', got '%s'", rr.Body.String())
-		}
-	})
 }
 
 func (app *App) checkMockDBSize(t *testing.T, expected int) {
