@@ -560,7 +560,6 @@ func TestApp_AuthenticateIntegration(t *testing.T) {
 		t.Errorf("Expected database to open, but got %s", err)
 	}
 	app := App{userModel: &models.UserModel{DB: testDB}}
-
 	t.Run("Authenticate Happy path", func(t *testing.T) {
 		user := models.User{
 			Email:     "deleteme",
@@ -606,8 +605,7 @@ func TestApp_AuthenticateIntegration(t *testing.T) {
 			Password:  "deleteme",
 			CreatedAt: time.Now(),
 		}
-		// just dummy insert it without making another request to make testing more efficent the add handler has already
-		// been tested
+		// insert user again as we deleted him in our initial test
 		err := app.userModel.Insert(&user)
 		if err != nil {
 			t.Errorf("Expected no error, got %s", err)
@@ -686,4 +684,136 @@ func TestApp_AuthenticateIntegration(t *testing.T) {
 		}
 	})
 
+}
+
+func TestApp_LogoutIntegration(t *testing.T) {
+	testCfg := data.TestPostgresConfig()
+	testDB, err := data.Open(testCfg)
+	defer testDB.Close()
+	if err != nil {
+		t.Errorf("Expected database to open, but got %s", err)
+	}
+	app := App{userModel: &models.UserModel{DB: testDB}}
+
+	t.Run("Logout happy path", func(t *testing.T) {
+		// insert manually as we need to do for both tests
+		user := models.User{
+			Email:     "deleteme",
+			Password:  "deleteme",
+			CreatedAt: time.Now(),
+		}
+		err = app.userModel.Insert(&user)
+
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
+		}
+		server := httptest.NewServer(http.HandlerFunc(app.Authenticate))
+		defer server.Close()
+		var emailPayload = []byte(`{"email": "deleteme", "password": "deleteme"}`)
+		req, err := http.NewRequest("POST", server.URL+"/users/login)", bytes.NewBuffer(emailPayload))
+		if err != nil {
+			t.Errorf("Unexpected error in get request to %s", req.URL)
+		}
+		resp, err := http.DefaultClient.Do(req)
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			t.Errorf("Expected status %d, but got %d", http.StatusOK, resp.StatusCode)
+		}
+
+		var userReturned models.User
+		err = json.NewDecoder(resp.Body).Decode(&userReturned)
+		if err != nil {
+			t.Errorf("Error unmarshaling JSON: %v", err)
+		}
+		userReturned.CreatedAt = user.CreatedAt
+		if userReturned.Email != user.Email {
+			t.Errorf("Expected user %v, but got %v", user, userReturned)
+		}
+		cookie := resp.Cookies()[0]
+		server = httptest.NewServer(http.HandlerFunc(app.SignOut))
+		defer server.Close()
+		req, err = http.NewRequest("POST", server.URL+"/users/logout)", nil)
+		if err != nil {
+			t.Errorf("Unexpected error in get request to %s", req.URL)
+		}
+		req.AddCookie(cookie)
+		resp, err = http.DefaultClient.Do(req)
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			t.Errorf("Expected status %d, but got %d", http.StatusOK, resp.StatusCode)
+		}
+		want := "logged out succesfully"
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			t.Errorf("Unexpected error reading response body: %v", err)
+		}
+		if strings.Contains(string(body), want) {
+			t.Errorf("Expected body %s, but got %s", want, string(body))
+		}
+		err = app.userModel.DeleteUser(user.Email)
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
+		}
+	})
+	t.Run("Logout Sad path", func(t *testing.T) {
+		// insert manually as we need to do for both tests
+		user := models.User{
+			Email:     "deleteme",
+			Password:  "deleteme",
+			CreatedAt: time.Now(),
+		}
+		err = app.userModel.Insert(&user)
+
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
+		}
+		server := httptest.NewServer(http.HandlerFunc(app.Authenticate))
+		defer server.Close()
+		var emailPayload = []byte(`{"email": "deleteme", "password": "deleteme"}`)
+		req, err := http.NewRequest("POST", server.URL+"/users/login)", bytes.NewBuffer(emailPayload))
+		if err != nil {
+			t.Errorf("Unexpected error in get request to %s", req.URL)
+		}
+		resp, err := http.DefaultClient.Do(req)
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			t.Errorf("Expected status %d, but got %d", http.StatusOK, resp.StatusCode)
+		}
+
+		var userReturned models.User
+		err = json.NewDecoder(resp.Body).Decode(&userReturned)
+		if err != nil {
+			t.Errorf("Error unmarshaling JSON: %v", err)
+		}
+		userReturned.CreatedAt = user.CreatedAt
+		if userReturned.Email != user.Email {
+			t.Errorf("Expected user %v, but got %v", user, userReturned)
+		}
+
+		server = httptest.NewServer(http.HandlerFunc(app.SignOut))
+		defer server.Close()
+		req, err = http.NewRequest("POST", server.URL+"/users/logout)", nil)
+		if err != nil {
+			t.Errorf("Unexpected error in get request to %s", req.URL)
+		}
+		resp, err = http.DefaultClient.Do(req)
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusUnauthorized {
+			t.Errorf("Expected status %d, but got %d", http.StatusUnauthorized, resp.StatusCode)
+		}
+		want := "unauthorized"
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			t.Errorf("Unexpected error reading response body: %v", err)
+		}
+		if strings.Contains(string(body), want) {
+			t.Errorf("Expected body %s, but got %s", want, string(body))
+		}
+		err = app.userModel.DeleteUser(user.Email)
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
+		}
+	})
 }

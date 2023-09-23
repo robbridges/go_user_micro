@@ -33,3 +33,10 @@ services:
     environment:
       DSN_DB: "host=db port=5432 user=postgres password=postgres dbname=usertest sslmode=disable"
       DSN_TEST_DB: "host=test-db port=5432 user=postgres password=postgres dbname=mockusertest sslmode=disable"
+  adminer:
+    image: adminer
+    restart: always
+    environment:
+        ADMINER_DESIGN: dracula
+    ports:
+      - "3333:8080"
