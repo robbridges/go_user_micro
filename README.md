@@ -40,4 +40,6 @@ I did my best to not rely on an env so any repo can plug and play this, but you 
 - [x] General cleanup - tests are very verbose and repetitive, The mock handlers are now table tests, still deciding if I want them all like that.
 - [x] Containerize user user
 - [x] Implement docker-compose for db, test-db, adminer, and app
+- [x] middleware to check for auth token in cookie, and refuse a request if not
+- [x] implement logout endpoint to delete cookie, tests included
 
