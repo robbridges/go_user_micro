@@ -103,9 +103,9 @@ the_lonely_road/cmd/api/handlers.go:230.2,231.16 2 1
 the_lonely_road/cmd/api/handlers.go:231.16,234.3 2 0
 the_lonely_road/cmd/api/handlers.go:237.2,240.16 3 1
 the_lonely_road/cmd/api/handlers.go:240.16,243.3 2 0
-the_lonely_road/cmd/api/handlers.go:246.65,248.16 2 0
-the_lonely_road/cmd/api/handlers.go:248.16,251.3 2 0
-the_lonely_road/cmd/api/handlers.go:252.2,254.16 3 0
+the_lonely_road/cmd/api/handlers.go:246.65,248.16 2 1
+the_lonely_road/cmd/api/handlers.go:248.16,251.3 2 1
+the_lonely_road/cmd/api/handlers.go:252.2,254.16 3 1
 the_lonely_road/cmd/api/handlers.go:254.16,257.3 2 0
 the_lonely_road/cmd/api/helpers.go:13.110,15.16 2 1
 the_lonely_road/cmd/api/helpers.go:15.16,17.3 1 1
