@@ -23,6 +23,7 @@ jobs:
           EMAIL_PORT: {{ secrets.EMAIL_PORT }}
           EMAIL_PASSWORD: {{ secrets.EMAIL_PASSWORD }}
           EMAIL_USER: {{ secrets.EMAIL_USER }}
+        run: |
 
 
       - name: Run Docker commands
