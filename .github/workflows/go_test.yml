@@ -23,7 +23,7 @@ jobs:
           echo "EMAIL_HOST=${{ secrets.EMAIL_HOST }}" >> email.env
           echo "EMAIL_PORT=${{ secrets.EMAIL_PORT }}" >> email.env
           echo "EMAIL_PASSWORD=${{ secrets.EMAIL_PASSWORD }}" >> email.env
-          echo "EMAIL_USER=${{ secrets.EMAIL_USER }}" >> email.env
+          echo "EMAIL_USERNAME=${{ secrets.EMAIL_USERNAME }}" >> email.env
 
 
       - name: Run Docker commands
