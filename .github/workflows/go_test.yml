@@ -1,0 +1,37 @@
+name: Go Test with Docker
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.x # Choose your desired Go version
+
+      - name: Set up Docker
+        uses: actions/setup-docker@v3
+        with:
+          docker-version: 20.10.7 # Specify the desired Docker version
+
+      - name: Build and start Docker containers
+        run: |
+          docker-compose up -d
+        working-directory: ./docker-compose.yml # Specify the directory containing your docker-compose.yml file
+
+      - name: Run Go tests
+        run: go test ./...
+
+      - name: Stop Docker containers
+        run: |
+          docker-compose down
+        working-directory: ./docker-compose.yml # Specify the directory containing your docker-compose.yml file
