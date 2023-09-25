@@ -1,0 +1,37 @@
+name: Go Test with Docker
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.21
+
+      - name: Set up environment
+        run: |
+          echo "EMAIL_HOST=${{ secrets.EMAIL_HOST }}" >> email.env
+          echo "EMAIL_PORT=${{ secrets.EMAIL_PORT }}" >> email.env
+          echo "EMAIL_PASSWORD=${{ secrets.EMAIL_PASSWORD }}" >> email.env
+          echo "EMAIL_USERNAME=${{ secrets.EMAIL_USERNAME }}" >> email.env
+
+
+      - name: Run Docker commands
+        run: docker compose up -d
+
+      - name: Run Go tests
+        run: go test ./...
+
+      # Optionally, you can add a step to stop Docker containers if needed
+      - name: Stop Docker containers
+        run: docker compose down
