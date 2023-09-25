@@ -43,3 +43,4 @@ I did my best to not rely on an env so any repo can plug and play this, but you 
 - [x] middleware to check for auth token in cookie, and refuse a request if not
 - [x] implement logout endpoint to delete cookie, tests included
 - [x] implement github actions for running tests
+- [x] implement github actions for building docker image
