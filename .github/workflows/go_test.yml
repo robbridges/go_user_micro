@@ -11,27 +11,19 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
 
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v2
         with:
-          go-version: 1.x # Choose your desired Go version
-
-      - name: Set up Docker
-        uses: actions/setup-docker@v3
-        with:
-          docker-version: 20.10.7 # Specify the desired Docker version
-
-      - name: Build and start Docker containers
-        run: |
-          docker-compose up -d
-        working-directory: ./docker-compose.yml # Specify the directory containing your docker-compose.yml file
+          go-version: 1.20 # Choose your desired Go version
 
       - name: Run Go tests
         run: go test ./...
 
+      - name: Run Docker commands
+        run: docker compose up -d
+
+      # Optionally, you can add a step to stop Docker containers if needed
       - name: Stop Docker containers
-        run: |
-          docker-compose down
-        working-directory: ./docker-compose.yml # Specify the directory containing your docker-compose.yml file
+        run: docker compose down
