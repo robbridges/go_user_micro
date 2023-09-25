@@ -42,4 +42,5 @@ I did my best to not rely on an env so any repo can plug and play this, but you 
 - [x] Implement docker-compose for db, test-db, adminer, and app
 - [x] middleware to check for auth token in cookie, and refuse a request if not
 - [x] implement logout endpoint to delete cookie, tests included
+- [x] Implement github workflow to run tests on pr to main
 
